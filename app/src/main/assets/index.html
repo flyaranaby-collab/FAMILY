@@ -1,0 +1,885 @@
+<title>우리가족 플래너</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: 냉장고 문 게시판 — 위 날짜 띠, 가운데 카드 보드, 휴대폰은 아래 탭·넓은 화면은 왼쪽 레일 */
+:root{
+  --bg:#eef3f1; --sheet:#ffffff; --ink:#1d2b2a; --muted:#5f716e; --line:#d6e1de; --soft:#e3ece9;
+  --accent:#1f6f6b; --accent-ink:#ffffff; --accent-soft:#d8ebe8;
+  --sun:#e8a33d; --sun-soft:#fbefd9; --coral:#d4573f; --coral-soft:#f8e2dc; --ok:#2f8a57; --ok-soft:#dff1e6;
+  --m1:#3f8fd8; --m2:#e0708f; --m3:#e8a33d; --m4:#7c64c8; --m5:#3fa27a; --m6:#c46a3a;
+  --f-display:"Jua","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111a19; --sheet:#1a2524; --ink:#e6efed; --muted:#9db0ac; --line:#2c3b39; --soft:#22302e;
+  --accent:#5cc0b8; --accent-ink:#0f1a19; --accent-soft:#1f3a37;
+  --sun:#f0b65a; --sun-soft:#3a2f1c; --coral:#f08a72; --coral-soft:#3d2620; --ok:#5cc28a; --ok-soft:#1d3527;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111a19; --sheet:#1a2524; --ink:#e6efed; --muted:#9db0ac; --line:#2c3b39; --soft:#22302e;
+  --accent:#5cc0b8; --accent-ink:#0f1a19; --accent-soft:#1f3a37;
+  --sun:#f0b65a; --sun-soft:#3a2f1c; --coral:#f08a72; --coral-soft:#3d2620; --ok:#5cc28a; --ok-soft:#1d3527;
+  color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance;letter-spacing:.01em}
+
+/* shell */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--accent);color:var(--accent-ink);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;align-items:center;gap:12px}
+.top .fam{font-family:var(--f-display);font-size:20px;white-space:nowrap}
+.top .date{font-size:13px;opacity:.85;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .sync{font-size:12px;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.18);white-space:nowrap}
+.iconbtn{border:0;background:rgba(255,255,255,.18);color:inherit;border-radius:10px;padding:6px 10px;font-size:13px;white-space:nowrap}
+.layout{display:flex;min-height:calc(100% - 52px)}
+.rail{display:none}
+main{flex:1;min-width:0;padding-block:16px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1100px;margin:0 auto;width:100%}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sheet);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(6,1fr);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs a,.rail a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;color:var(--muted);text-decoration:none;font-size:11.5px}
+nav.tabs a svg,.rail a svg{width:22px;height:22px}
+nav.tabs a.on,.rail a.on{color:var(--accent);font-weight:700}
+@media (min-width:900px){
+  nav.tabs{display:none}
+  .rail{display:flex;flex-direction:column;gap:2px;width:96px;flex:none;padding:14px 6px;border-right:1px solid var(--line);background:var(--sheet);position:sticky;top:52px;height:calc(100vh - 52px)}
+  .rail a{border-radius:12px;padding:10px 4px;font-size:12.5px}
+  .rail a.on{background:var(--accent-soft)}
+  main{padding-bottom:40px}
+}
+
+/* blocks */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.head h2{font-size:26px}
+.head p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+.card h3{font-size:18px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.card h3 .sp{flex:1}
+.empty{color:var(--muted);font-size:13.5px;padding:6px 0}
+.btn{border:0;border-radius:11px;padding:9px 14px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:14px;white-space:nowrap}
+.btn.ghost{background:var(--soft);color:var(--ink);font-weight:500}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:9px}
+.btn.warn{background:var(--coral);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--soft);min-width:0}
+.row:first-of-type{border-top:0}
+.row .main{flex:1;min-width:0}
+.row .t{font-weight:500;overflow-wrap:anywhere}
+.row .s{font-size:12.5px;color:var(--muted)}
+.row.done .t{text-decoration:line-through;color:var(--muted)}
+.chk{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);background:var(--sheet);flex:none;display:grid;place-items:center;padding:0}
+.chk.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.chk svg{width:16px;height:16px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.pro{background:var(--sun-soft);color:var(--sun)}
+.pill.red{background:var(--coral-soft);color:var(--coral)}
+.pill.amber{background:var(--sun-soft);color:var(--sun)}
+.pill.green{background:var(--ok-soft);color:var(--ok)}
+.pill.teal{background:var(--accent-soft);color:var(--accent)}
+.face{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-size:12px;font-weight:700;flex:none}
+.face.lg{width:34px;height:34px;font-size:14px}
+.notice{background:var(--sun-soft);border-radius:12px;padding:10px 14px;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.notice .main{flex:1;min-width:200px}
+.segs{display:flex;gap:6px;flex-wrap:wrap}
+.seg{border:1px solid var(--line);background:var(--sheet);border-radius:99px;padding:5px 12px;font-size:13px}
+.seg.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.lock{text-align:center;padding:26px 16px}
+.lock p{color:var(--muted);max-width:42ch;margin:8px auto 14px}
+a.link{color:var(--accent)}
+
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .dow{font-size:12px;color:var(--muted);text-align:center;padding:4px 0}
+.cal .dow:first-child,.cal .d.sun .n{color:var(--coral)}
+.cal .d{background:var(--sheet);border:1px solid var(--line);border-radius:10px;min-height:76px;padding:4px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden}
+.cal .d.out{opacity:.4}
+.cal .d.today{border:2px solid var(--accent)}
+.cal .d.sel{background:var(--accent-soft)}
+.cal .n{font-size:13px;font-weight:700}
+.cal .lun{font-size:10px;color:var(--muted);font-weight:400;margin-left:3px}
+.cal .ev{font-size:10.5px;border-radius:5px;padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+@media (max-width:520px){.cal .d{min-height:58px}.cal .ev{font-size:9.5px}.cal .lun{display:none}}
+
+/* bars */
+.bar{height:10px;border-radius:99px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,20,19,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--sheet);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;
+  padding:18px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px))}
+@media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{font-size:21px;margin-bottom:12px}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+.fld label{font-size:12.5px;color:var(--muted);font-weight:500}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+.fld textarea{min-height:90px;resize:vertical}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.acts .sp{flex:1}
+.optlist{display:grid;gap:8px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px}
+.opt .main{flex:1;min-width:0}
+.opt .s{font-size:12.5px;color:var(--muted)}
+.ai-out{background:var(--bg);border-radius:12px;padding:12px;margin-top:10px;font-size:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+
+/* fridge cart */
+.cart{width:34px;height:34px;border-radius:10px;border:0;background:var(--sun);color:#1d2b2a;display:grid;place-items:center;flex:none;padding:0}
+.cart svg{width:19px;height:19px}
+.stat{width:34px;flex:none;display:grid;place-items:center}
+.dot{width:12px;height:12px;border-radius:50%}
+
+/* week meals */
+.meals{display:grid;grid-template-columns:52px repeat(3,minmax(0,1fr));gap:4px}
+.meals .h{font-size:12px;color:var(--muted);text-align:center;padding:4px}
+.meals .dl{font-size:13px;font-weight:700;display:flex;flex-direction:column;justify-content:center}
+.meals .dl span{font-size:11px;color:var(--muted);font-weight:400}
+.meals button{min-height:52px;border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:5px;font-size:12.5px;text-align:left;overflow-wrap:anywhere}
+.meals button.todayrow{border-color:var(--accent)}
+.meals button:empty::after{content:"+";color:var(--muted)}
+
+/* stickers */
+.stickers{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.stk{width:30px;height:30px;border-radius:50%;background:var(--sun);display:grid;place-items:center;color:#fff}
+.stk svg{width:18px;height:18px}
+.stk.off{background:var(--soft)}
+
+/* wall dashboard */
+.wall{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;
+  padding:calc(18px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));
+  display:grid;gap:14px;grid-template-columns:minmax(0,1fr);grid-template-areas:"clock" "today" "cal" "lists" "kids" "next" "ticker"}
+@media (min-width:1000px){.wall{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr);grid-template-rows:auto 1fr auto auto;
+  grid-template-areas:"clock cal today" "next cal lists" "kids kids lists" "ticker ticker ticker"}}
+.wall .card{padding:16px 18px}
+.w-clock{grid-area:clock}.w-cal{grid-area:cal}.w-today{grid-area:today}.w-lists{grid-area:lists}.w-kids{grid-area:kids}.w-next{grid-area:next}
+.w-clock .time{font-family:var(--f-display);font-size:clamp(56px,9vw,104px);line-height:1;color:var(--accent)}
+.w-clock .dt{font-size:18px;margin-top:6px}
+.wx{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:14px;text-align:center;font-size:12px}
+.wx b{display:block;font-size:14px}
+.ticker{grid-area:ticker;background:var(--accent);color:var(--accent-ink);border-radius:var(--r);padding:12px 18px;overflow:hidden;white-space:nowrap}
+.ticker span{display:inline-block;padding-left:100%;animation:tick 40s linear infinite}
+@keyframes tick{to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.ticker span{animation:none;padding-left:0;white-space:normal}}
+.wall .cal .d{min-height:64px}
+.wall .close{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:51;opacity:.6}
+
+/* grandparent view */
+.grand{font-size:22px}
+.grand h2{font-size:34px}
+.grand .row .t{font-size:22px}
+.grand .row .s{font-size:17px}
+.grand .card{padding:20px}
+</style>
+
+<header class="top">
+  <span class="fam" id="famName">우리가족</span>
+  <span class="date" id="topDate"></span>
+  <span class="sync" id="syncPill">이 기기에 저장</span>
+  <button class="iconbtn" data-act="wall" title="거실 대시보드">대시보드</button>
+</header>
+<div class="layout">
+  <div class="rail" id="rail"></div>
+  <main id="view"></main>
+</div>
+<nav class="tabs" id="tabs"></nav>
+<div id="layer"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- 기본 도구 ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d,12)};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const today=()=>ymd(new Date());
+const DOW=["일","월","화","수","목","금","토"];
+const won=n=>(Math.round(n)||0).toLocaleString("ko-KR")+"원";
+const diffDays=(a,b)=>Math.round((parse(a)-parse(b))/864e5);
+const ICON={
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
+  cart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11l2-8H6.2"/><circle cx="9.5" cy="19.5" r="1.5"/><circle cx="17.5" cy="19.5" r="1.5"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  todo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 12l3 3 5-6"/></svg>',
+  shop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.5 12h-11z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>',
+  fridge:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M5 10h14M9 6v2M9 13v3"/></svg>',
+  more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+  money:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="13" rx="3"/><circle cx="12" cy="12.5" r="2.5"/></svg>',
+  meal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 13h16a8 8 0 0 1-16 0zM12 9V4M8 9V6M16 9V6"/></svg>',
+  kid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="7" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'
+};
+
+/* ---------- 저장소 ---------- */
+const KEY="familyPlanner.v1", LKEY="familyPlanner.local";
+const COLS=["members","events","todos","shop","fridge","ledger","meals","kids","growth","stickers"];
+function sget(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+function sset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let S=sget(KEY);
+let L=Object.assign({me:"",pro:true,stores:[
+  {name:"쿠팡",url:"https://www.coupang.com/np/search?q={q}"},
+  {name:"네이버쇼핑",url:"https://search.shopping.naver.com/search/all?query={q}"},
+  {name:"컬리",url:"https://www.kurly.com/search?sword={q}"},
+  {name:"SSG닷컴",url:"https://www.ssg.com/search.ssg?query={q}"}],
+  sync:{projectId:"",apiKey:"",code:""},aiUrl:"",city:{name:"강릉",lat:37.75,lon:128.88},famName:"우리가족"},sget(LKEY)||{});
+function saveLocal(){sset(LKEY,L)}
+
+function sample(){
+  const t=new Date(), T=ymd(t), y=t.getFullYear();
+  const m=[{id:"m1",name:"아빠",color:"var(--m1)"},{id:"m2",name:"엄마",color:"var(--m2)"},{id:"m3",name:"첫째",color:"var(--m3)"},{id:"m4",name:"둘째",color:"var(--m4)"}];
+  const d=n=>ymd(addDays(t,n));
+  const o={example:true,members:m,
+   events:[
+    {id:uid(),date:T,time:"18:30",title:"둘째 피아노 학원",type:"일정",repeat:"weekly",who:"m4"},
+    {id:uid(),date:d(2),time:"10:00",title:"첫째 치과 검진",type:"일정",repeat:"none",who:"m2"},
+    {id:uid(),date:d(5),time:"",title:"가족 캠핑",type:"일정",repeat:"none",who:"all"},
+    {id:uid(),date:y+"-01-01",title:"할머니 생신 (음력 10월 3일)",type:"기념일",repeat:"lunar",lunarM:10,lunarD:3,who:"all"},
+    {id:uid(),date:y+"-01-01",title:"할아버지 제사 (음력 11월 20일)",type:"기념일",repeat:"lunar",lunarM:11,lunarD:20,who:"all"},
+    {id:uid(),date:(y-15)+"-05-12",title:"결혼기념일",type:"기념일",repeat:"yearly",who:"all"},
+    {id:uid(),date:y+"-01-25",title:"관리비 납부",type:"납부",repeat:"monthly",who:"m1"},
+    {id:uid(),date:y+"-01-15",title:"통신비 자동이체 확인",type:"납부",repeat:"monthly",who:"m2"},
+    {id:uid(),date:d(40),title:"첫째 기말고사",type:"D-day",repeat:"none",who:"m3"}],
+   todos:[
+    {id:uid(),title:"둘째 학원 픽업",who:"m1",due:T,chore:false,done:false},
+    {id:uid(),title:"분리수거 내놓기",who:"m3",due:T,chore:true,done:false},
+    {id:uid(),title:"설거지",who:"m1",due:T,chore:true,done:true,doneBy:"m1",doneAt:Date.now()-3e7},
+    {id:uid(),title:"빨래 개기",who:"m2",due:d(-1),chore:true,done:true,doneBy:"m3",doneAt:Date.now()-9e7},
+    {id:uid(),title:"화장실 청소",who:"m2",due:d(-2),chore:true,done:true,doneBy:"m2",doneAt:Date.now()-17e7},
+    {id:uid(),title:"현관 신발 정리",who:"m4",due:T,chore:true,done:false}],
+   shop:[{id:uid(),name:"두부",qty:"2모",done:false},{id:uid(),name:"대파",qty:"1단",done:false},{id:uid(),name:"아이 간식",qty:"",done:true}],
+   fridge:[
+    {id:uid(),name:"우유",cat:"유제품",exp:d(2),status:"조금",buy:{store:"쿠팡",link:"",memo:"900ml 2개 묶음, 저지방"}},
+    {id:uid(),name:"계란",cat:"신선",exp:d(9),status:"있음",buy:{}},
+    {id:uid(),name:"요거트",cat:"유제품",exp:d(-1),status:"있음",buy:{}},
+    {id:uid(),name:"김치",cat:"반찬",exp:d(30),status:"있음",buy:{}},
+    {id:uid(),name:"주방세제",cat:"생활용품",exp:"",status:"다씀",buy:{store:"네이버쇼핑",link:"",memo:"1리터 리필, 무향"}},
+    {id:uid(),name:"참기름",cat:"양념",exp:"",status:"다씀",buy:{}}],
+   ledger:[
+    {id:uid(),date:d(-1),kind:"지출",cat:"식비",amount:68400,memo:"장보기",who:"m2"},
+    {id:uid(),date:d(-3),kind:"지출",cat:"교육",amount:180000,memo:"피아노 학원비",who:"m1"},
+    {id:uid(),date:d(-5),kind:"지출",cat:"생활",amount:32000,memo:"생필품",who:"m2"},
+    {id:uid(),date:d(-6),kind:"지출",cat:"외식",amount:54000,memo:"가족 외식",who:"m1"},
+    {id:uid(),date:d(-8),kind:"수입",cat:"부수입",amount:150000,memo:"중고 판매",who:"m1"}],
+   meals:[{id:uid(),date:T,slot:"저녁",menu:"된장찌개, 계란말이"},{id:uid(),date:d(1),slot:"저녁",menu:"김치볶음밥"}],
+   kids:[{id:"k1",name:"첫째",goal:10,reward:"주말 영화 보기"},{id:"k2",name:"둘째",goal:10,reward:"놀이공원"}],
+   growth:[
+    {id:uid(),kid:"k1",date:ymd(addDays(t,-270)),height:138.2,weight:33},{id:uid(),kid:"k1",date:ymd(addDays(t,-180)),height:140.5,weight:34.1},
+    {id:uid(),kid:"k1",date:ymd(addDays(t,-90)),height:142.4,weight:35.2},{id:uid(),kid:"k1",date:d(-5),height:144.1,weight:36},
+    {id:uid(),kid:"k2",date:ymd(addDays(t,-200)),height:118,weight:22},{id:uid(),kid:"k2",date:d(-5),height:121.6,weight:23.4}],
+   stickers:[{id:uid(),kid:"k1",date:d(-1),reason:"분리수거 도움"},{id:uid(),kid:"k1",date:d(-3),reason:"숙제 먼저"},{id:uid(),kid:"k2",date:d(-2),reason:"신발 정리"},
+    {id:uid(),kid:"k2",date:d(-1),reason:"양치 혼자"},{id:uid(),kid:"k2",date:T,reason:"동생 도와줌"},{id:uid(),kid:"k1",date:d(-4),reason:"방 정리"}]};
+  const now=Date.now();
+  COLS.forEach(c=>o[c].forEach(x=>{x.upd=now}));
+  return o;
+}
+if(!S||!S.members){S=sample();}
+COLS.forEach(c=>{if(!Array.isArray(S[c]))S[c]=[]});
+if(!L.me)L.me=(S.members[0]||{}).id||"";
+function live(c){return S[c].filter(x=>!x.del)}
+function find(c,id){return S[c].find(x=>x.id===id)}
+let dirty=false;
+function save(){sset(KEY,S);dirty=true;queueSync()}
+function put(c,obj){obj.upd=Date.now();if(!obj.id)obj.id=uid();const i=S[c].findIndex(x=>x.id===obj.id);if(i<0)S[c].push(obj);else S[c][i]=obj;save()}
+function del(c,id){const x=find(c,id);if(x){x.del=true;x.upd=Date.now();save()}}
+function member(id){return S.members.find(m=>m.id===id&&!m.del)}
+function face(id,lg){
+  if(id==="all")return '<span class="face'+(lg?" lg":"")+'" style="background:var(--accent)">가</span>';
+  const m=member(id);if(!m)return "";
+  return '<span class="face'+(lg?" lg":"")+'" style="background:'+esc(m.color)+'" title="'+esc(m.name)+'">'+esc(m.name.slice(0,1))+"</span>";
+}
+function mname(id){if(id==="all")return "가족 모두";const m=member(id);return m?m.name:""}
+function mcolor(id){if(id==="all")return "var(--accent)";const m=member(id);return m?m.color:"var(--muted)"}
+
+/* ---------- 음력 ---------- */
+let LUN;try{LUN=new Intl.DateTimeFormat("ko-KR-u-ca-chinese",{year:"numeric",month:"numeric",day:"numeric"})}catch(e){LUN=null}
+const lunCache=new Map();
+function lunar(ds){
+  if(!LUN)return null;
+  if(lunCache.has(ds))return lunCache.get(ds);
+  let r=null;
+  try{const p=LUN.formatToParts(parse(ds));let mo=(p.find(x=>x.type==="month")||{}).value||"";const leap=/윤|bis/.test(mo);
+    r={m:parseInt(mo.replace(/\D/g,""),10),d:parseInt((p.find(x=>x.type==="day")||{}).value,10),leap}}catch(e){}
+  lunCache.set(ds,r);return r;
+}
+function lunarMatch(ev,ds){
+  const l=lunar(ds);if(!l||l.leap||l.m!==ev.lunarM)return false;
+  if(l.d===ev.lunarD)return true;
+  if(ev.lunarD===30&&l.d===29){const n=lunar(ymd(addDays(parse(ds),1)));return n&&n.d===1}
+  return false;
+}
+/* ---------- 일정 반복 ---------- */
+function occurs(ev,ds){
+  if(ev.del)return false;
+  const r=ev.repeat||"none";
+  if(r==="none")return ev.date===ds;
+  if(r==="lunar")return lunarMatch(ev,ds);
+  if(ds<ev.date)return false;
+  const a=parse(ev.date),b=parse(ds);
+  if(r==="weekly")return a.getDay()===b.getDay();
+  if(r==="monthly"){const last=new Date(b.getFullYear(),b.getMonth()+1,0).getDate();return Math.min(a.getDate(),last)===b.getDate()}
+  if(r==="yearly")return a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+  return false;
+}
+function eventsOn(ds){return live("events").filter(e=>occurs(e,ds)).sort((x,y)=>(x.time||"99").localeCompare(y.time||"99"))}
+function upcoming(days,types){
+  const out=[],t=new Date(),T=today();
+  for(let i=0;i<=days;i++){const ds=ymd(addDays(t,i));
+    live("events").forEach(e=>{if((!types||types.includes(e.type))&&occurs(e,ds)&&!out.some(o=>o.ev.id===e.id))out.push({ev:e,ds,dd:diffDays(ds,T)})})}
+  // D-day는 범위 밖이어도 표시
+  if(!types||types.includes("D-day"))live("events").filter(e=>e.type==="D-day"&&e.repeat==="none"&&e.date>=T&&!out.some(o=>o.ev.id===e.id)).forEach(e=>out.push({ev:e,ds:e.date,dd:diffDays(e.date,T)}));
+  return out.sort((a,b)=>a.dd-b.dd);
+}
+const ddLabel=n=>n===0?"오늘":n>0?"D-"+n:"D+"+(-n);
+const TYPE_PILL={"일정":"teal","기념일":"red","납부":"amber","D-day":"green"};
+
+/* ---------- 유통기한 ---------- */
+function expInfo(f){
+  if(!f.exp)return null;const n=diffDays(f.exp,today());
+  if(n<0)return {cls:"red",txt:"기한 지남"};if(n===0)return {cls:"red",txt:"오늘까지"};if(n<=3)return {cls:"amber",txt:n+"일 남음"};return {cls:"",txt:n+"일 남음"};
+}
+
+/* ---------- 화면 공통 ---------- */
+const TABS=[["today","오늘","home"],["calendar","달력","cal"],["todo","할 일","todo"],["shop","장보기","shop"],["fridge","냉장고","fridge"],["more","더보기","more"]];
+const MORE=[["money","가계부","money",true],["meal","식단","meal",true],["kids","아이","kid",true],["setup","설정","gear",false]];
+function navHtml(cur){
+  const sub=MORE.map(x=>x[0]);
+  return TABS.map(t=>'<a href="#'+t[0]+'" class="'+((cur===t[0]||(t[0]==="more"&&sub.includes(cur)))?"on":"")+'">'+ICON[t[2]]+"<span>"+t[1]+"</span></a>").join("");
+}
+function railHtml(cur){
+  return TABS.slice(0,5).concat(MORE.map(m=>[m[0],m[1],m[2]])).map(t=>'<a href="#'+t[0]+'" class="'+(cur===t[0]?"on":"")+'">'+ICON[t[2]]+"<span>"+t[1]+"</span></a>").join("");
+}
+function exampleNotice(){return S.example?'<div class="notice"><span class="main"><b>예시 가족으로 채워져 있어요.</b> 둘러본 뒤 지우고 우리 가족으로 시작하세요.</span><button class="btn sm" data-act="clearExample">예시 지우고 시작</button></div>':""}
+function proLock(name){
+  return '<div class="card lock"><span class="pill pro">가족 비서 팩</span><h3 style="justify-content:center;margin-top:8px">'+esc(name)+'</h3><p>이 기능은 유료 \'가족 비서 팩\'에 들어 있어요. 설정에서 미리 써보기를 켜면 바로 사용할 수 있어요.</p><button class="btn" data-act="proOn">미리 써보기 켜기</button></div>';
+}
+const proBadge='<span class="pill pro">PRO</span>';
+let toastT;
+function toast(msg){let el=$(".toast");if(!el){el=document.createElement("div");el.className="toast";el.setAttribute("role","status");document.body.appendChild(el)}el.textContent=msg;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2200)}
+
+/* ---------- 시트(입력창) ---------- */
+function closeSheet(){$("#layer").innerHTML=""}
+function sheet(html){
+  $("#layer").innerHTML='<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">'+html+"</div></div>";
+  const f=$("#layer input,#layer select,#layer textarea");if(f&&!f.readOnly)setTimeout(()=>f.focus(),30);
+}
+function memberOpts(sel,withAll){return (withAll?'<option value="all"'+(sel==="all"?" selected":"")+'>가족 모두</option>':"")+live("members").map(m=>'<option value="'+m.id+'"'+(m.id===sel?" selected":"")+">"+esc(m.name)+"</option>").join("")}
+let formCtx=null;
+function form(title,fields,onSave,onDelete,extra){
+  formCtx={fields,onSave,onDelete};
+  const h=fields.map(f=>{
+    const id="f_"+f.k;let inp;
+    if(f.type==="select")inp='<select id="'+id+'">'+(f.html||f.options.map(o=>{const v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return '<option value="'+esc(v)+'"'+(String(v)===String(f.value)?" selected":"")+">"+esc(l)+"</option>"}).join(""))+"</select>";
+    else if(f.type==="textarea")inp='<textarea id="'+id+'" placeholder="'+esc(f.ph||"")+'">'+esc(f.value||"")+"</textarea>";
+    else if(f.type==="check")inp='<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)"><input type="checkbox" id="'+id+'"'+(f.value?" checked":"")+' style="width:auto">'+esc(f.text||"")+"</label>";
+    else inp='<input id="'+id+'" type="'+(f.type||"text")+'" value="'+esc(f.value==null?"":f.value)+'" placeholder="'+esc(f.ph||"")+'"'+(f.type==="number"?' step="any" inputmode="decimal"':"")+">";
+    return '<div class="fld"'+(f.hide?" hidden":"")+' id="w_'+f.k+'"><label for="'+id+'">'+esc(f.label)+"</label>"+inp+(f.help?'<span style="font-size:12px;color:var(--muted)">'+esc(f.help)+"</span>":"")+"</div>";
+  }).join("");
+  sheet("<h3>"+esc(title)+"</h3>"+(extra||"")+'<form id="theForm">'+h+'<div class="acts">'+(onDelete?'<button type="button" class="btn ghost" data-act="formDel" id="delBtn">삭제</button>':"")+'<span class="sp"></span><button type="button" class="btn ghost" data-act="close">취소</button><button class="btn" type="submit">저장</button></div></form>');
+}
+function readForm(){const o={};formCtx.fields.forEach(f=>{const el=document.getElementById("f_"+f.k);if(!el)return;o[f.k]=f.type==="check"?el.checked:f.type==="number"?(el.value===""?"":Number(el.value)):el.value.trim()});return o}
+
+/* ---------- 오늘 ---------- */
+function vToday(){
+  const T=today(),evs=eventsOn(T),td=live("todos").filter(t=>!t.done&&(!t.due||t.due<=T));
+  const shop=live("shop").filter(s=>!s.done),up=upcoming(45).filter(u=>u.dd>0).slice(0,6);
+  const pay=upcoming(10,["납부"]),expSoon=live("fridge").filter(f=>{const e=expInfo(f);return e&&e.cls}).slice(0,5);
+  const l=lunar(T);
+  return exampleNotice()+'<div class="head"><div><h2>오늘, '+(new Date().getMonth()+1)+"월 "+new Date().getDate()+"일 "+DOW[new Date().getDay()]+"요일</h2><p>"+(l?"음력 "+(l.leap?"윤":"")+l.m+"월 "+l.d+"일 · ":"")+'<span id="wxLine">날씨 불러오는 중</span></p></div><button class="btn" data-act="quickAdd">+ 빠른 추가</button></div>'+
+  '<div class="grid">'+
+  card("오늘 가족 일정",evs.map(evRow).join("")||'<div class="empty">오늘은 일정이 없어요.</div>',"calendar")+
+  card("오늘 할 일",td.map(todoRow).join("")||'<div class="empty">남은 할 일이 없어요.</div>',"todo")+
+  card("장보기 "+(shop.length?'<span class="pill teal">'+shop.length+"개</span>":""),shop.slice(0,6).map(shopRow).join("")+(shop.length>6?'<div class="empty">외 '+(shop.length-6)+"개</div>":"")||'<div class="empty">살 것이 없어요.</div>',"shop")+
+  card("다가오는 날",up.map(upRow).join("")||'<div class="empty">45일 안에 예정된 날이 없어요.</div>',"calendar")+
+  (pay.length||expSoon.length?card("놓치면 안 되는 것",pay.map(upRow).join("")+expSoon.map(f=>{const e=expInfo(f);return '<div class="row"><span class="stat"><span class="dot" style="background:var(--coral)"></span></span><div class="main"><div class="t">'+esc(f.name)+'</div><div class="s">냉장고 · 유통기한</div></div><span class="pill '+e.cls+'">'+e.txt+"</span></div>"}).join(""),"fridge"):"")+
+  "</div>";
+}
+function card(title,body,link){return '<section class="card"><h3>'+title+'<span class="sp"></span>'+(link?'<a class="link" href="#'+link+'" style="font-family:var(--f-body);font-size:13px">전체</a>':"")+"</h3>"+body+"</section>"}
+function evRow(e){return '<div class="row" data-act="editEvent" data-id="'+e.id+'" style="cursor:pointer">'+face(e.who)+'<div class="main"><div class="t">'+esc(e.title)+'</div><div class="s">'+(e.time?esc(e.time)+" · ":"")+esc(mname(e.who))+'</div></div><span class="pill '+(TYPE_PILL[e.type]||"")+'">'+esc(e.type)+"</span></div>"}
+function upRow(u){const d=parse(u.ds);return '<div class="row" data-act="editEvent" data-id="'+u.ev.id+'" style="cursor:pointer"><span class="pill '+(TYPE_PILL[u.ev.type]||"")+' num" style="min-width:54px;justify-content:center">'+ddLabel(u.dd)+'</span><div class="main"><div class="t">'+esc(u.ev.title)+'</div><div class="s">'+(d.getMonth()+1)+"/"+d.getDate()+" ("+DOW[d.getDay()]+")"+(u.ev.repeat==="lunar"?" · 음력 반복":"")+"</div></div></div>"}
+function todoRow(t){return '<div class="row'+(t.done?" done":"")+'"><button class="chk'+(t.done?" on":"")+'" data-act="toggleTodo" data-id="'+t.id+'" aria-label="완료">'+(t.done?ICON.check:"")+'</button><div class="main" data-act="editTodo" data-id="'+t.id+'" style="cursor:pointer"><div class="t">'+esc(t.title)+'</div><div class="s">'+(t.chore?"집안일 · ":"")+(t.done&&t.doneBy?esc(mname(t.doneBy))+" 완료":t.due?(t.due<today()?"밀림 · ":"")+esc(t.due.slice(5).replace("-","/")):"")+"</div></div>"+face(t.who)+"</div>"}
+function shopRow(s){return '<div class="row'+(s.done?" done":"")+'"><button class="chk'+(s.done?" on":"")+'" data-act="toggleShop" data-id="'+s.id+'" aria-label="샀어요">'+(s.done?ICON.check:"")+'</button><div class="main" data-act="editShop" data-id="'+s.id+'" style="cursor:pointer"><div class="t">'+esc(s.name)+(s.qty?' <span class="s">'+esc(s.qty)+"</span>":"")+'</div>'+(s.from?'<div class="s">냉장고에서 다 씀</div>':"")+"</div></div>"}
+
+/* ---------- 달력 ---------- */
+let calY,calM,calSel;
+function vCalendar(){
+  const now=new Date();if(calY==null){calY=now.getFullYear();calM=now.getMonth();calSel=today()}
+  const first=new Date(calY,calM,1),start=addDays(first,-first.getDay()),T=today();
+  let cells=DOW.map(d=>'<div class="dow">'+d+"</div>").join("");
+  for(let i=0;i<42;i++){const d=addDays(start,i),ds=ymd(d),evs=eventsOn(ds),l=lunar(ds);
+    if(i>=35&&d.getMonth()!==calM)break;
+    cells+='<button class="d'+(d.getMonth()!==calM?" out":"")+(ds===T?" today":"")+(ds===calSel?" sel":"")+(d.getDay()===0?" sun":"")+'" data-act="selDay" data-ds="'+ds+'"><span class="n num">'+d.getDate()+(l&&(l.d===1||l.d===15)?'<span class="lun">음 '+l.m+"."+l.d+"</span>":"")+"</span>"+
+      evs.slice(0,3).map(e=>'<span class="ev" style="background:'+esc(mcolor(e.who))+'">'+esc(e.title)+"</span>").join("")+(evs.length>3?'<span class="s" style="font-size:10px;color:var(--muted)">+'+(evs.length-3)+"</span>":"")+"</button>"}
+  const sel=eventsOn(calSel),sd=parse(calSel),sl=lunar(calSel);
+  return '<div class="head"><div><h2>'+calY+"년 "+(calM+1)+'월</h2><p>음력 생신·제사는 해마다 양력 날짜를 자동으로 찾아 표시해요.</p></div><div class="segs"><button class="seg" data-act="calMove" data-n="-1">이전</button><button class="seg" data-act="calToday">오늘</button><button class="seg" data-act="calMove" data-n="1">다음</button></div></div>'+
+  '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))"><section class="card" style="grid-column:1/-1;overflow-x:auto"><div class="cal">'+cells+"</div></section>"+
+  '<section class="card"><h3>'+(sd.getMonth()+1)+"월 "+sd.getDate()+"일 ("+DOW[sd.getDay()]+")"+(sl?'<span class="pill">음 '+(sl.leap?"윤":"")+sl.m+"."+sl.d+"</span>":"")+'<span class="sp"></span><button class="btn sm" data-act="addEvent" data-ds="'+calSel+'">+ 일정</button></h3>'+(sel.map(evRow).join("")||'<div class="empty">이 날은 일정이 없어요.</div>')+"</section>"+
+  '<section class="card"><h3>사진으로 일정 넣기 '+proBadge+'</h3><p class="s" style="color:var(--muted);margin:0 0 10px;font-size:13.5px">가정통신문, 학원 시간표, 학교 알림장을 찍어 올리면 AI가 날짜와 일정을 찾아 줘요. 확인한 것만 달력에 들어가요.</p><button class="btn" data-act="photoEvents">사진 고르기</button></section></div>';
+}
+function eventForm(e,ds){
+  const isNew=!e;e=e||{date:ds||today(),type:"일정",repeat:"none",who:"all",time:""};
+  const l=lunar(e.date)||{};
+  form(isNew?"일정 추가":"일정 고치기",[
+    {k:"title",label:"무엇",value:e.title,ph:"예: 할머니 생신, 관리비 납부"},
+    {k:"type",label:"종류",type:"select",options:["일정","기념일","납부","D-day"],value:e.type},
+    {k:"date",label:"날짜 (양력)",type:"date",value:e.date},
+    {k:"time",label:"시간",type:"time",value:e.time||""},
+    {k:"repeat",label:"반복",type:"select",options:[["none","반복 안 함"],["weekly","매주"],["monthly","매달"],["yearly","매년 (양력)"],["lunar","매년 (음력)"]],value:e.repeat},
+    {k:"lunarM",label:"음력 월",type:"number",value:e.lunarM||l.m||"",hide:e.repeat!=="lunar",help:"음력 반복일 때만 사용해요. 위 양력 날짜를 고르면 자동으로 채워져요."},
+    {k:"lunarD",label:"음력 일",type:"number",value:e.lunarD||l.d||"",hide:e.repeat!=="lunar"},
+    {k:"who",label:"누구 일정 / 담당",type:"select",html:memberOpts(e.who,true)},
+    {k:"memo",label:"메모",type:"textarea",value:e.memo||""}],
+   v=>{if(!v.title)return toast("무엇인지 적어 주세요");if(v.repeat==="lunar"&&(!v.lunarM||!v.lunarD))return toast("음력 월과 일을 적어 주세요");
+     put("events",Object.assign(e,v,{lunarM:Number(v.lunarM)||null,lunarD:Number(v.lunarD)||null}));closeSheet();toast("저장했어요");render()},
+   isNew?null:()=>{del("events",e.id);closeSheet();render()});
+  const rep=$("#f_repeat"),dt=$("#f_date");
+  const sync=()=>{const on=rep.value==="lunar";$("#w_lunarM").hidden=!on;$("#w_lunarD").hidden=!on;if(on){const x=lunar(dt.value);if(x){$("#f_lunarM").value=x.m;$("#f_lunarD").value=x.d}}};
+  rep.onchange=sync;dt.onchange=()=>{if(rep.value==="lunar")sync()};
+}
+
+/* ---------- 할 일 + 집안일 분담 ---------- */
+let todoFilter="all";
+function weekStart(){const t=new Date();const d=(t.getDay()+6)%7;return ymd(addDays(t,-d))}
+function vTodo(){
+  const T=today();let list=live("todos");
+  if(todoFilter!=="all")list=list.filter(t=>t.who===todoFilter);
+  const open=list.filter(t=>!t.done).sort((a,b)=>(a.due||"9").localeCompare(b.due||"9")),done=list.filter(t=>t.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0)).slice(0,8);
+  const ws=parse(weekStart()).getTime(),ms=live("members");
+  const cnt=ms.map(m=>({m,n:live("todos").filter(t=>t.chore&&t.done&&t.doneBy===m.id&&(t.doneAt||0)>=ws).length})),max=Math.max(1,...cnt.map(c=>c.n)),tot=cnt.reduce((a,c)=>a+c.n,0);
+  return exampleNotice()+'<div class="head"><div><h2>할 일</h2><p>담당자 얼굴이 붙어 있어 "누가 하기로 했지?"가 사라져요.</p></div><button class="btn" data-act="addTodo">+ 할 일</button></div>'+
+  '<div class="segs" style="margin-bottom:12px"><button class="seg'+(todoFilter==="all"?" on":"")+'" data-act="todoFilter" data-id="all">모두</button>'+ms.map(m=>'<button class="seg'+(todoFilter===m.id?" on":"")+'" data-act="todoFilter" data-id="'+m.id+'">'+esc(m.name)+"</button>").join("")+"</div>"+
+  '<div class="grid">'+card("해야 할 일 <span class=\"pill\">"+open.length+"</span>",open.map(todoRow).join("")||'<div class="empty">모두 끝냈어요.</div>')+
+  (L.pro?'<section class="card"><h3>이번 주 집안일 분담 '+proBadge+'</h3><p style="margin:0 0 10px;color:var(--muted);font-size:13px">월요일부터 지금까지 끝낸 집안일 '+tot+"개</p>"+cnt.map(c=>'<div style="display:flex;align-items:center;gap:10px;margin:8px 0">'+face(c.m.id)+'<span style="width:44px;font-size:13.5px">'+esc(c.m.name)+'</span><div class="bar" style="flex:1"><i style="width:'+(c.n/max*100)+"%;background:"+esc(c.m.color)+'"></i></div><b class="num" style="width:28px;text-align:right">'+c.n+"</b></div>").join("")+'<p style="margin:10px 0 0;font-size:12.5px;color:var(--muted)">할 일을 만들 때 \'집안일\'에 체크하면 여기에 모여요. 완료는 이 기기 사용자('+esc(mname(L.me)||"설정에서 선택")+') 이름으로 기록돼요.</p></section>':proLock("집안일 분담 카드"))+
+  card("최근 끝낸 일",done.map(todoRow).join("")||'<div class="empty">아직 없어요.</div>')+"</div>";
+}
+function todoForm(t){
+  const isNew=!t;t=t||{who:L.me||"all",due:today(),chore:false};
+  form(isNew?"할 일 추가":"할 일 고치기",[
+    {k:"title",label:"할 일",value:t.title,ph:"예: 둘째 학원 픽업"},
+    {k:"who",label:"담당",type:"select",html:memberOpts(t.who,true)},
+    {k:"due",label:"언제까지",type:"date",value:t.due||""},
+    {k:"chore",label:"집안일",type:"check",value:t.chore,text:"집안일로 분담 카드에 집계"}],
+   v=>{if(!v.title)return toast("할 일을 적어 주세요");put("todos",Object.assign(t,v));closeSheet();render()},
+   isNew?null:()=>{del("todos",t.id);closeSheet();render()});
+}
+
+/* ---------- 장보기 ---------- */
+function vShop(){
+  const open=live("shop").filter(s=>!s.done),done=live("shop").filter(s=>s.done);
+  return exampleNotice()+'<div class="head"><div><h2>장보기</h2><p>누가 체크하든 가족 모두의 목록에 바로 반영돼요. 마트에서 "우유 있어?" 전화는 그만.</p></div></div>'+
+  '<section class="card" style="margin-bottom:14px"><form id="shopAdd" style="display:flex;gap:8px"><input id="shopName" placeholder="살 것 (예: 두부 2모)" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px"><button class="btn">추가</button></form></section>'+
+  '<div class="grid">'+card("살 것 <span class=\"pill teal\">"+open.length+"</span>",open.map(shopRow).join("")||'<div class="empty">목록이 비었어요.</div>')+
+  card("산 것"+(done.length?'<span class="sp"></span><button class="btn sm ghost" data-act="clearShop" style="font-family:var(--f-body)">비우기</button>':""),done.map(shopRow).join("")||'<div class="empty">아직 없어요.</div>')+"</div>";
+}
+
+/* ---------- 냉장고 ---------- */
+const FSTAT=["있음","조금","다씀"];
+function vFridge(){
+  const items=live("fridge"),order={다씀:0,조금:1,있음:2};
+  items.sort((a,b)=>order[a.status]-order[b.status]||(a.exp||"9").localeCompare(b.exp||"9"));
+  const used=items.filter(f=>f.status==="다씀"),rest=items.filter(f=>f.status!=="다씀");
+  return exampleNotice()+'<div class="head"><div><h2>냉장고</h2><p>다 쓴 품목 왼쪽의 장바구니를 누르면 바로 다시 주문할 수 있어요.</p></div><button class="btn" data-act="addFridge">+ 품목</button></div>'+
+  (L.pro?"":'<div class="notice"><span class="main">냉장고·다시 주문하기는 \'가족 비서 팩\' 기능이에요. 지금은 둘러보기만 할 수 있어요.</span><button class="btn sm" data-act="proOn">미리 써보기 켜기</button></div>')+
+  '<div class="grid">'+card("다 쓴 품목 <span class=\"pill red\">"+used.length+"</span>",used.map(fridgeRow).join("")||'<div class="empty">다 쓴 품목이 없어요.</div>')+
+  card("냉장고 안",rest.map(fridgeRow).join("")||'<div class="empty">품목을 추가해 보세요.</div>')+"</div>";
+}
+function fridgeRow(f){
+  const e=expInfo(f),col={있음:"var(--ok)",조금:"var(--sun)",다씀:"var(--coral)"}[f.status];
+  const left=f.status==="다씀"?'<button class="cart" data-act="order" data-id="'+f.id+'" aria-label="'+esc(f.name)+' 주문하기" title="주문하기">'+ICON.cart+"</button>":'<span class="stat"><span class="dot" style="background:'+col+'"></span></span>';
+  return '<div class="row">'+left+'<div class="main" data-act="editFridge" data-id="'+f.id+'" style="cursor:pointer"><div class="t">'+esc(f.name)+'</div><div class="s">'+esc(f.cat||"")+(f.buy&&f.buy.store?" · 구매처 "+esc(f.buy.store):"")+"</div></div>"+(e&&f.status!=="다씀"?'<span class="pill '+e.cls+'">'+e.txt+"</span>":"")+
+  '<div class="segs" style="flex-wrap:nowrap">'+FSTAT.map(s=>'<button class="seg'+(f.status===s?" on":"")+'" style="padding:4px 8px;font-size:12px" data-act="fstat" data-id="'+f.id+'" data-s="'+s+'">'+s+"</button>").join("")+"</div></div>";
+}
+function setFridgeStatus(id,s){
+  const f=find("fridge",id);if(!f)return;f.status=s;put("fridge",f);
+  if(s==="다씀"&&!live("shop").some(x=>!x.done&&x.name===f.name)){put("shop",{name:f.name,qty:"",done:false,from:f.id});toast(f.name+"을(를) 장보기에 넣었어요")}
+  render();
+}
+function fridgeForm(f){
+  const isNew=!f;f=f||{status:"있음",cat:"신선",exp:"",buy:{}};f.buy=f.buy||{};
+  form(isNew?"냉장고 품목 추가":"품목 고치기",[
+    {k:"name",label:"품목",value:f.name,ph:"예: 우유"},
+    {k:"cat",label:"분류",type:"select",options:["신선","유제품","반찬","양념","냉동","음료","간식","생활용품","기타"],value:f.cat},
+    {k:"exp",label:"유통기한",type:"date",value:f.exp||""},
+    {k:"status",label:"상태",type:"select",options:FSTAT,value:f.status},
+    {k:"store",label:"구매처 (직접 입력)",value:f.buy.store||"",ph:"예: 쿠팡, 동네 마트"},
+    {k:"link",label:"상품 링크 (직접 입력)",type:"url",value:f.buy.link||"",ph:"https://..."},
+    {k:"memo",label:"구매 메모",value:f.buy.memo||"",ph:"용량·브랜드·평소 가격"}],
+   v=>{if(!v.name)return toast("품목 이름을 적어 주세요");const was=f.status;Object.assign(f,{name:v.name,cat:v.cat,exp:v.exp,status:v.status,buy:{store:v.store,link:v.link,memo:v.memo}});
+     put("fridge",f);closeSheet();if(v.status==="다씀"&&was!=="다씀")setFridgeStatus(f.id,"다씀");else render()},
+   isNew?null:()=>{del("fridge",f.id);closeSheet();render()});
+}
+function storeUrl(s,q){return s.url.replace("{q}",encodeURIComponent(q))}
+function orderSheet(id){
+  const f=find("fridge",id);if(!f)return;const b=f.buy||{};
+  const q=f.name+(b.memo?" "+b.memo.split(",")[0]:"");
+  sheet('<h3>'+esc(f.name)+' 다시 주문하기</h3>'+(b.memo?'<p style="margin:-6px 0 12px;color:var(--muted);font-size:13.5px">메모: '+esc(b.memo)+"</p>":"")+
+  '<div class="optlist">'+
+  (b.link?'<a class="opt" href="'+esc(b.link)+'" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"><span class="cart" style="background:var(--accent);color:var(--accent-ink)">'+ICON.cart+'</span><span class="main"><b>저장한 링크로 주문</b><div class="s">'+esc(b.store||"저장한 상품 페이지")+"</div></span></a>":
+   '<button class="opt" data-act="editFridge" data-id="'+f.id+'"><span class="cart" style="background:var(--soft);color:var(--muted)">'+ICON.cart+'</span><span class="main"><b>구매 링크 저장하기</b><div class="s">자주 사는 상품 페이지 주소를 적어 두면 다음부터 한 번에 열려요.</div></span></button>')+
+  L.stores.map(s=>'<a class="opt" href="'+esc(storeUrl(s,f.name))+'" target="_blank" rel="noopener" style="color:inherit;text-decoration:none"><span class="face lg" style="background:var(--m'+(1+L.stores.indexOf(s)%6)+')">'+esc(s.name.slice(0,1))+'</span><span class="main"><b>'+esc(s.name)+"에서 찾기</b><div class=\"s\">'"+esc(f.name)+"' 검색 결과 열기"+(b.store===s.name?" · 지난번 구매처":"")+"</div></span></a>").join("")+
+  '<button class="opt" data-act="aiProduct" data-id="'+f.id+'"><span class="face lg" style="background:var(--sun)">AI</span><span class="main"><b>더 좋은 제품 추천 '+proBadge+'</b><div class="s">메모(용량·선호)를 보고 대안 2~3개와 고른 이유를 알려줘요.</div></span></button>'+
+  '</div><div id="aiOut"></div><div class="acts"><button class="btn ghost" data-act="editFridge" data-id="'+f.id+'">구매 정보 고치기</button><span class="sp"></span><button class="btn ghost" data-act="fstat" data-id="'+f.id+'" data-s="있음">샀어요 (있음으로)</button><button class="btn" data-act="close">닫기</button></div>');
+}
+
+/* ---------- 가계부 ---------- */
+let mY,mM;
+const LCAT=["식비","외식","생활","교육","의료","교통","주거·공과금","경조사","여가","기타"],ICAT=["월급","부수입","용돈","기타"];
+function vMoney(){
+  if(!L.pro)return '<div class="head"><h2>가계부</h2></div>'+proLock("가계부·월간 지출 리포트");
+  const n=new Date();if(mY==null){mY=n.getFullYear();mM=n.getMonth()}
+  const key=mY+"-"+pad(mM+1),rows=live("ledger").filter(r=>r.date.startsWith(key)).sort((a,b)=>b.date.localeCompare(a.date));
+  const out=rows.filter(r=>r.kind==="지출"),inn=rows.filter(r=>r.kind==="수입"),so=out.reduce((a,r)=>a+r.amount,0),si=inn.reduce((a,r)=>a+r.amount,0);
+  const pk=mM===0?(mY-1)+"-12":mY+"-"+pad(mM),po=live("ledger").filter(r=>r.date.startsWith(pk)&&r.kind==="지출").reduce((a,r)=>a+r.amount,0);
+  const by={};out.forEach(r=>by[r.cat]=(by[r.cat]||0)+r.amount);const cats=Object.entries(by).sort((a,b)=>b[1]-a[1]),mx=Math.max(1,...cats.map(c=>c[1]));
+  return '<div class="head"><div><h2>가계부 '+proBadge+'</h2><p>'+mY+"년 "+(mM+1)+'월</p></div><div class="segs"><button class="seg" data-act="monMove" data-n="-1">이전 달</button><button class="seg" data-act="monMove" data-n="1">다음 달</button><button class="btn" data-act="addLedger">+ 기록</button></div></div>'+
+  '<div class="grid"><section class="card"><h3>이번 달 요약</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div class="s" style="color:var(--muted);font-size:12.5px">지출</div><div class="num" style="font-family:var(--f-display);font-size:26px;color:var(--coral)">'+won(so)+'</div></div><div><div class="s" style="color:var(--muted);font-size:12.5px">수입</div><div class="num" style="font-family:var(--f-display);font-size:26px;color:var(--ok)">'+won(si)+"</div></div></div>"+
+  '<p style="margin:10px 0 0;font-size:13.5px;color:var(--muted)">'+(po?"지난달 지출 "+won(po)+" 대비 "+(so>=po?'<b style="color:var(--coral)">'+won(so-po)+" 많아요</b>":'<b style="color:var(--ok)">'+won(po-so)+" 적어요</b>"):"지난달 기록이 없어요.")+"</p></section>"+
+  '<section class="card"><h3>어디에 썼나</h3>'+(cats.map(([c,v])=>'<div style="display:flex;align-items:center;gap:10px;margin:7px 0"><span style="width:84px;font-size:13.5px">'+esc(c)+'</span><div class="bar" style="flex:1"><i style="width:'+(v/mx*100)+'%;background:var(--coral)"></i></div><span class="num" style="width:96px;text-align:right;font-size:13.5px">'+won(v)+"</span></div>").join("")||'<div class="empty">이번 달 지출이 없어요.</div>')+"</section>"+
+  card("기록",rows.map(r=>'<div class="row" data-act="editLedger" data-id="'+r.id+'" style="cursor:pointer">'+face(r.who)+'<div class="main"><div class="t">'+esc(r.memo||r.cat)+'</div><div class="s">'+esc(r.date.slice(5).replace("-","/"))+" · "+esc(r.cat)+'</div></div><b class="num" style="color:'+(r.kind==="지출"?"var(--coral)":"var(--ok)")+'">'+(r.kind==="지출"?"-":"+")+won(r.amount)+"</b></div>").join("")||'<div class="empty">기록이 없어요.</div>')+"</div>";
+}
+function ledgerForm(r){
+  const isNew=!r;r=r||{date:today(),kind:"지출",cat:"식비",who:L.me};
+  form(isNew?"가계부 기록":"기록 고치기",[
+    {k:"kind",label:"구분",type:"select",options:["지출","수입"],value:r.kind},
+    {k:"amount",label:"금액 (원)",type:"number",value:r.amount,ph:"예: 32000"},
+    {k:"cat",label:"분류",type:"select",options:LCAT.concat(ICAT.filter(c=>!LCAT.includes(c))),value:r.cat},
+    {k:"memo",label:"내용",value:r.memo,ph:"예: 장보기"},
+    {k:"date",label:"날짜",type:"date",value:r.date},
+    {k:"who",label:"누가",type:"select",html:memberOpts(r.who,true)}],
+   v=>{if(!v.amount)return toast("금액을 적어 주세요");put("ledger",Object.assign(r,v));closeSheet();render()},
+   isNew?null:()=>{del("ledger",r.id);closeSheet();render()});
+}
+
+/* ---------- 식단 ---------- */
+let mealWeek=0;
+function vMeal(){
+  if(!L.pro)return '<div class="head"><h2>식단</h2></div>'+proLock("주간 식단·재료로 메뉴 추천");
+  const ws=addDays(parse(weekStart()),mealWeek*7),T=today(),slots=["아침","점심","저녁"];
+  let g='<div class="h"></div>'+slots.map(s=>'<div class="h">'+s+"</div>").join("");
+  for(let i=0;i<7;i++){const d=addDays(ws,i),ds=ymd(d);g+='<div class="dl">'+DOW[d.getDay()]+"<span>"+(d.getMonth()+1)+"/"+d.getDate()+"</span></div>"+
+    slots.map(s=>{const m=live("meals").find(x=>x.date===ds&&x.slot===s);return '<button class="'+(ds===T?"todayrow":"")+'" data-act="editMeal" data-ds="'+ds+'" data-slot="'+s+'">'+(m?esc(m.menu):"")+"</button>"}).join("")}
+  const have=live("fridge").filter(f=>f.status!=="다씀").map(f=>f.name);
+  return '<div class="head"><div><h2>식단 '+proBadge+'</h2><p>'+(ws.getMonth()+1)+"/"+ws.getDate()+' 주</p></div><div class="segs"><button class="seg" data-act="mealMove" data-n="-1">지난주</button><button class="seg" data-act="mealMove" data-n="0">이번 주</button><button class="seg" data-act="mealMove" data-n="1">다음 주</button></div></div>'+
+  '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))"><section class="card" style="overflow-x:auto"><div class="meals">'+g+'</div></section><section class="card"><h3>오늘 뭐 먹지? AI 추천</h3><p style="margin:0 0 10px;font-size:13.5px;color:var(--muted)">냉장고에 있는 재료 '+have.length+"개("+esc(have.slice(0,6).join(", "))+(have.length>6?" 등":"")+')로 만들 수 있는 저녁 메뉴를 추천받고, 원하는 날에 바로 넣어요.</p><button class="btn" data-act="aiMeal">메뉴 추천받기</button><div id="mealOut"></div></section></div>';
+}
+
+/* ---------- 아이 ---------- */
+function vKids(){
+  if(!L.pro)return '<div class="head"><h2>아이</h2></div>'+proLock("아이 성장 카드·칭찬 스티커");
+  const kids=live("kids");
+  return '<div class="head"><div><h2>아이 '+proBadge+'</h2><p>키·몸무게 성장 기록과 칭찬 스티커판</p></div><button class="btn" data-act="addKid">+ 아이 추가</button></div>'+
+  (kids.length?'<div class="grid">'+kids.map(kidCard).join("")+"</div>":'<div class="card empty">아이를 추가하면 성장 카드와 칭찬 스티커판이 생겨요.</div>');
+}
+function growthSvg(rows){
+  if(rows.length<2)return '<div class="empty">기록이 2개 이상이면 성장 그래프가 그려져요.</div>';
+  const W=300,H=110,P=26,xs=rows.map(r=>parse(r.date).getTime()),ys=rows.map(r=>r.height);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.floor(Math.min(...ys)-1),y1=Math.ceil(Math.max(...ys)+1);
+  const X=t=>P+(t-x0)/(x1-x0||1)*(W-P*2),Y=v=>H-18-(v-y0)/(y1-y0||1)*(H-34);
+  const pts=rows.map((r,i)=>X(xs[i]).toFixed(1)+","+Y(r.height).toFixed(1)).join(" ");
+  const last=rows[rows.length-1];
+  return '<svg viewBox="0 0 '+W+" "+H+'" style="width:100%;height:auto;display:block" role="img" aria-label="키 변화 그래프">'+
+   '<line x1="'+P+'" x2="'+(W-P)+'" y1="'+Y(y0)+'" y2="'+Y(y0)+'" stroke="var(--line)"/><line x1="'+P+'" x2="'+(W-P)+'" y1="'+Y(y1)+'" y2="'+Y(y1)+'" stroke="var(--line)" stroke-dasharray="3 3"/>'+
+   '<text x="2" y="'+(Y(y1)+4)+'" font-size="10" fill="var(--muted)">'+y1+'</text><text x="2" y="'+(Y(y0)+4)+'" font-size="10" fill="var(--muted)">'+y0+"</text>"+
+   '<polygon points="'+X(xs[0]).toFixed(1)+","+Y(y0)+" "+pts+" "+X(xs[xs.length-1]).toFixed(1)+","+Y(y0)+'" fill="var(--accent-soft)"/>'+
+   '<polyline points="'+pts+'" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>'+
+   rows.map((r,i)=>'<circle cx="'+X(xs[i]).toFixed(1)+'" cy="'+Y(r.height).toFixed(1)+'" r="'+(i===rows.length-1?4.5:3)+'" fill="var(--accent)"/>').join("")+
+   '<text x="'+(X(xs[xs.length-1])-4)+'" y="'+(Y(last.height)-8)+'" font-size="11" text-anchor="end" fill="var(--ink)" font-weight="700">'+last.height+"cm</text>"+
+   '<text x="'+P+'" y="'+(H-3)+'" font-size="10" fill="var(--muted)">'+esc(rows[0].date.slice(2).replace(/-/g,"."))+'</text><text x="'+(W-P)+'" y="'+(H-3)+'" font-size="10" fill="var(--muted)" text-anchor="end">'+esc(last.date.slice(2).replace(/-/g,"."))+"</text></svg>";
+}
+function kidCard(k){
+  const rows=live("growth").filter(g=>g.kid===k.id).sort((a,b)=>a.date.localeCompare(b.date)),last=rows[rows.length-1],first=rows[0];
+  const st=live("stickers").filter(s=>s.kid===k.id),goal=Number(k.goal)||10,cur=st.length%goal===0&&st.length?goal:st.length%goal,round=Math.floor(st.length/goal);
+  const yearAgo=rows.filter(r=>diffDays(today(),r.date)>=300).pop();
+  return '<section class="card"><h3>'+esc(k.name)+'<span class="sp"></span><button class="btn sm ghost" data-act="editKid" data-id="'+k.id+'" style="font-family:var(--f-body)">고치기</button></h3>'+
+  '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px"><div><div style="font-size:12px;color:var(--muted)">키</div><b class="num" style="font-size:20px">'+(last?last.height+"cm":"-")+'</b></div><div><div style="font-size:12px;color:var(--muted)">몸무게</div><b class="num" style="font-size:20px">'+(last?last.weight+"kg":"-")+"</b></div>"+
+  (last&&first&&last!==first?'<div><div style="font-size:12px;color:var(--muted)">'+(yearAgo?"1년 새":"첫 기록 이후")+'</div><b class="num" style="font-size:20px;color:var(--ok)">+'+(last.height-(yearAgo||first).height).toFixed(1)+"cm</b></div>":"")+"</div>"+
+  growthSvg(rows)+'<div class="acts"><button class="btn sm" data-act="addGrowth" data-id="'+k.id+'">+ 키·몸무게</button></div>'+
+  '<h3 style="margin-top:14px">칭찬 스티커 <span class="pill amber">'+cur+" / "+goal+"</span>"+(round?'<span class="pill green">보상 '+round+"번 받음</span>":"")+'</h3><div class="stickers">'+
+  Array.from({length:goal},(_,i)=>'<span class="stk'+(i<cur?"":" off")+'">'+ICON.star+"</span>").join("")+'</div><div style="font-size:13px;color:var(--muted)">다 모으면: '+esc(k.reward||"보상을 정해 보세요")+"</div>"+
+  st.slice(-3).reverse().map(s=>'<div class="row"><span class="stk" style="width:22px;height:22px">'+ICON.star+'</span><div class="main"><div class="t" style="font-size:14px">'+esc(s.reason)+'</div><div class="s">'+esc(s.date.slice(5).replace("-","/"))+"</div></div></div>").join("")+
+  '<div class="acts"><button class="btn sm" data-act="addSticker" data-id="'+k.id+'" style="background:var(--sun);color:#1d2b2a">+ 스티커 붙이기</button></div></section>';
+}
+
+/* ---------- 더보기 / 설정 ---------- */
+function vMore(){
+  return '<div class="head"><h2>더보기</h2></div><div class="grid">'+MORE.map(m=>'<a href="#'+m[0]+'" class="card" style="display:flex;gap:12px;align-items:center;color:inherit;text-decoration:none"><span style="width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center">'+ICON[m[2]].replace("<svg",'<svg width="22" height="22"')+'</span><span style="flex:1"><b style="font-size:16px">'+m[1]+"</b></span>"+(m[3]?proBadge:"")+"</a>").join("")+
+  '<a href="#wall" class="card" style="display:flex;gap:12px;align-items:center;color:inherit;text-decoration:none"><span style="width:40px;height:40px;border-radius:12px;background:var(--sun-soft);color:var(--sun);display:grid;place-items:center">'+ICON.home.replace("<svg",'<svg width="22" height="22"')+'</span><span style="flex:1"><b style="font-size:16px">거실 대시보드</b><div style="font-size:12.5px;color:var(--muted)">안 쓰는 태블릿을 벽걸이 가족 게시판으로</div></span>'+proBadge+"</a>"+
+  '<a href="#grand" class="card" style="display:flex;gap:12px;align-items:center;color:inherit;text-decoration:none"><span style="width:40px;height:40px;border-radius:12px;background:var(--coral-soft);color:var(--coral);display:grid;place-items:center;font-family:var(--f-display);font-size:20px">가</span><span style="flex:1"><b style="font-size:16px">큰 글씨 보기</b><div style="font-size:12.5px;color:var(--muted)">할머니·할아버지용 읽기 화면</div></span></a></div>';
+}
+function vSetup(){
+  const ms=live("members"),sy=L.sync,on=!!(sy.projectId&&sy.apiKey&&sy.code);
+  return '<div class="head"><div><h2>설정</h2><p>가족 구성원, 가족 공유, 가족 비서 팩, 백업</p></div></div><div class="grid">'+
+  '<section class="card"><h3>우리 가족</h3><div class="fld"><label for="famIn">가족 이름</label><input id="famIn" value="'+esc(L.famName)+'"></div>'+
+   ms.map(m=>'<div class="row" data-act="editMember" data-id="'+m.id+'" style="cursor:pointer">'+face(m.id,1)+'<div class="main"><div class="t">'+esc(m.name)+"</div></div>"+(m.id===L.me?'<span class="pill teal">이 기기 사용자</span>':"")+"</div>").join("")+
+   '<div class="acts"><button class="btn sm" data-act="addMember">+ 구성원</button><span class="sp"></span><label style="font-size:13px;display:flex;gap:6px;align-items:center">이 기기 사용자<select id="meSel" style="border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:5px">'+memberOpts(L.me)+"</select></label></div></section>"+
+  '<section class="card"><h3>가족 비서 팩 '+proBadge+'</h3><p style="margin:0 0 10px;font-size:13.5px;color:var(--muted)">월 2,900원 · 연 29,000원 (가족 1팀). 거실 대시보드, 집안일 분담 카드, 칭찬 스티커·성장 카드, 냉장고·다시 주문, 가계부, 식단, AI 기능(사진→일정, 메뉴·제품 추천)이 들어 있어요. 결제는 출시 때 붙이고, 지금은 미리 써볼 수 있어요.</p>'+
+   '<label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="proChk"'+(L.pro?" checked":"")+'> 가족 비서 팩 미리 써보기</label></section>'+
+  '<section class="card"><h3>가족 실시간 공유</h3><p style="margin:0 0 10px;font-size:13.5px;color:var(--muted)">'+(on?'<b style="color:var(--ok)">연결됨</b> · 가족 코드 <b>'+esc(sy.code)+"</b>. 같은 코드를 넣은 가족 휴대폰·PC와 자동으로 맞춰져요.":"지금은 이 기기에만 저장돼요. Firebase 프로젝트 정보와 가족 코드를 넣으면 가족 모두의 휴대폰·PC가 같은 내용을 봐요.")+"</p>"+
+   '<div class="fld"><label for="syP">Firebase 프로젝트 ID</label><input id="syP" value="'+esc(sy.projectId)+'" placeholder="예: familyplaner"></div>'+
+   '<div class="fld"><label for="syK">웹 API 키</label><input id="syK" value="'+esc(sy.apiKey)+'" placeholder="AIza..."></div>'+
+   '<div class="fld"><label for="syC">가족 코드</label><input id="syC" value="'+esc(sy.code)+'" placeholder="가족끼리만 아는 긴 코드"><span style="font-size:12px;color:var(--muted)">코드를 아는 사람은 누구나 볼 수 있으니 길고 추측하기 어렵게 정하세요.</span></div>'+
+   '<div class="acts"><button class="btn" data-act="saveSync">저장하고 연결</button><button class="btn ghost" data-act="genCode">코드 만들기</button><button class="btn ghost" data-act="syncNow">지금 맞추기</button></div><p id="syncMsg" style="font-size:12.5px;color:var(--muted);margin:8px 0 0"></p></section>'+
+  '<section class="card"><h3>쇼핑몰 바로가기</h3><p style="margin:0 0 8px;font-size:13.5px;color:var(--muted)">냉장고 다시 주문하기에 나오는 쇼핑몰이에요. 주소의 {q} 자리에 품목 이름이 들어가요.</p>'+
+   L.stores.map((s,i)=>'<div class="row"><div class="main"><div class="t">'+esc(s.name)+'</div><div class="s" style="overflow-wrap:anywhere">'+esc(s.url)+'</div></div><button class="btn sm ghost" data-act="delStore" data-i="'+i+'">삭제</button></div>').join("")+
+   '<div class="acts"><button class="btn sm" data-act="addStore">+ 쇼핑몰</button></div></section>'+
+  '<section class="card"><h3>AI 연결</h3><p style="margin:0 0 10px;font-size:13.5px;color:var(--muted)">'+(aiState==="sample"?'<b style="color:var(--ok)">사용 가능</b> · 이 화면에서는 Claude가 바로 답해요.':"휴대폰 앱에서는 AI 키를 앱에 넣지 않고, 가족 플래너 전용 서버(Firebase Cloud Functions 등)를 거쳐 써요. 서버 주소를 넣으면 사진→일정, 메뉴·제품 추천이 켜져요.")+"</p>"+
+   '<div class="fld"><label for="aiIn">AI 서버 주소</label><input id="aiIn" value="'+esc(L.aiUrl)+'" placeholder="https://..."></div><div class="acts"><button class="btn ghost" data-act="saveAi">저장</button></div></section>'+
+  '<section class="card"><h3>날씨 지역</h3><div class="segs">'+[["강릉",37.75,128.88],["서울",37.57,126.98],["춘천",37.88,127.73],["원주",37.34,127.92],["부산",35.18,129.08],["대전",36.35,127.38],["광주",35.16,126.85],["제주",33.5,126.53]].map(c=>'<button class="seg'+(L.city.name===c[0]?" on":"")+'" data-act="city" data-n="'+c[0]+'" data-lat="'+c[1]+'" data-lon="'+c[2]+'">'+c[0]+"</button>").join("")+"</div></section>"+
+  '<section class="card"><h3>백업</h3><p style="margin:0 0 10px;font-size:13.5px;color:var(--muted)">기록 전체를 글자로 복사해 카톡·메모에 보관하고, 필요할 때 붙여넣어 되살려요.</p><div class="acts"><button class="btn" data-act="backup">백업 만들기</button><button class="btn ghost" data-act="restore">되살리기</button><button class="btn warn" data-act="resetAll">모두 지우기</button></div></section></div>';
+}
+
+/* ---------- 거실 대시보드 ---------- */
+let clockT,wakeLock;
+function vWall(){
+  const T=today(),t=new Date(),l=lunar(T);
+  const first=new Date(t.getFullYear(),t.getMonth(),1),start=addDays(first,-first.getDay());
+  let cells=DOW.map(d=>'<div class="dow">'+d+"</div>").join("");
+  for(let i=0;i<42;i++){const d=addDays(start,i),ds=ymd(d),ev=eventsOn(ds);if(i>=35&&d.getMonth()!==t.getMonth())break;
+    cells+='<div class="d'+(d.getMonth()!==t.getMonth()?" out":"")+(ds===T?" today":"")+(d.getDay()===0?" sun":"")+'"><span class="n num">'+d.getDate()+"</span>"+ev.slice(0,2).map(e=>'<span class="ev" style="background:'+esc(mcolor(e.who))+'">'+esc(e.title)+"</span>").join("")+"</div>"}
+  const evs=eventsOn(T),shop=live("shop").filter(s=>!s.done),td=live("todos").filter(x=>!x.done&&(!x.due||x.due<=T)),up=upcoming(60).filter(u=>u.dd>0).slice(0,5);
+  const tick=[].concat(upcoming(7,["납부"]).map(u=>u.ev.title+" "+ddLabel(u.dd)),live("fridge").filter(f=>{const e=expInfo(f);return e&&e.cls}).map(f=>f.name+" 유통기한 "+expInfo(f).txt),live("fridge").filter(f=>f.status==="다씀").map(f=>f.name+" 다 씀"),upcoming(1,["기념일"]).filter(u=>u.dd<=1).map(u=>u.ev.title+" "+ddLabel(u.dd)));
+  const kids=live("kids");
+  return '<div class="wall" id="wallBox"><button class="btn ghost sm close" data-act="wallClose">닫기</button>'+
+  '<section class="card w-clock"><div class="time num" id="wClock">--:--</div><div class="dt">'+(t.getMonth()+1)+"월 "+t.getDate()+"일 "+DOW[t.getDay()]+"요일"+(l?' <span style="color:var(--muted);font-size:15px">음력 '+l.m+"."+l.d+"</span>":"")+'</div><div class="wx" id="wWx"><span style="grid-column:1/-1;color:var(--muted)">'+esc(L.city.name)+" 주간 날씨 불러오는 중</span></div></section>"+
+  '<section class="card w-cal"><h3>'+(t.getMonth()+1)+'월</h3><div class="cal">'+cells+"</div></section>"+
+  '<section class="card w-today"><h3>오늘 일정</h3>'+(evs.map(evRow).join("")||'<div class="empty">오늘은 여유로운 날</div>')+"</section>"+
+  '<section class="card w-lists"><h3>장보기</h3>'+(shop.slice(0,6).map(shopRow).join("")||'<div class="empty">살 것 없음</div>')+'<h3 style="margin-top:12px">할 일</h3>'+(td.slice(0,6).map(todoRow).join("")||'<div class="empty">모두 끝!</div>')+"</section>"+
+  '<section class="card w-next"><h3>다가오는 날</h3>'+(up.map(upRow).join("")||'<div class="empty">예정 없음</div>')+"</section>"+
+  '<section class="card w-kids"><h3>아이 성장 카드</h3><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))">'+(kids.map(k=>{const g=live("growth").filter(x=>x.kid===k.id).sort((a,b)=>a.date.localeCompare(b.date)),last=g[g.length-1],st=live("stickers").filter(s=>s.kid===k.id).length,goal=Number(k.goal)||10;
+    return '<div><b style="font-size:17px">'+esc(k.name)+'</b><div class="num" style="font-size:14px;color:var(--muted)">'+(last?last.height+"cm · "+last.weight+"kg":"기록 없음")+'</div><div class="stickers">'+Array.from({length:goal},(_,i)=>'<span class="stk'+(i<st%goal||(st&&st%goal===0)?"":" off")+'" style="width:22px;height:22px">'+ICON.star+"</span>").join("")+"</div></div>"}).join("")||'<div class="empty">아이를 추가해 보세요.</div>')+"</div></section>"+
+  '<div class="ticker"><span>'+esc(tick.length?tick.join("   ·   "):"오늘도 좋은 하루 보내세요")+"</span></div></div>";
+}
+function startWall(){
+  const tickc=()=>{const el=$("#wClock");if(!el){clearInterval(clockT);return}const d=new Date();el.textContent=pad(d.getHours())+":"+pad(d.getMinutes())};
+  clearInterval(clockT);tickc();clockT=setInterval(tickc,10000);
+  try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(w=>wakeLock=w).catch(()=>{})}catch(e){}
+  loadWeather().then(w=>{const el=$("#wWx");if(!el)return;if(!w){el.innerHTML='<span style="grid-column:1/-1;color:var(--muted)">날씨는 앱(인터넷 연결)에서 표시돼요.</span>';return}
+    el.innerHTML=w.days.map(d=>"<div>"+DOW[parse(d.date).getDay()]+"<b>"+d.icon+'</b><span class="num">'+d.max+"°/"+d.min+"°</span></div>").join("")});
+}
+
+/* ---------- 큰 글씨 보기 ---------- */
+function vGrand(){
+  const T=today(),t=new Date(),evs=eventsOn(T),up=upcoming(30).filter(u=>u.dd>0).slice(0,7),kids=live("kids");
+  return '<div class="grand"><div class="head"><div><h2>'+(t.getMonth()+1)+"월 "+t.getDate()+"일 "+DOW[t.getDay()]+'요일</h2></div><a href="#today" class="btn ghost">보통 화면</a></div><div class="grid">'+
+  card("오늘 손주들 일정",evs.map(e=>'<div class="row">'+face(e.who,1)+'<div class="main"><div class="t">'+esc(e.title)+'</div><div class="s">'+(e.time?esc(e.time)+" · ":"")+esc(mname(e.who))+"</div></div></div>").join("")||'<div class="empty" style="font-size:20px">오늘은 일정이 없어요.</div>')+
+  card("곧 있을 날",up.map(u=>'<div class="row"><span class="pill '+(TYPE_PILL[u.ev.type]||"")+'" style="font-size:16px">'+ddLabel(u.dd)+'</span><div class="main"><div class="t">'+esc(u.ev.title)+"</div></div></div>").join("")||'<div class="empty" style="font-size:20px">한 달 안에 예정이 없어요.</div>')+
+  card("손주 칭찬 스티커",kids.map(k=>{const st=live("stickers").filter(s=>s.kid===k.id);const r=st[st.length-1];return '<div class="row"><span class="stk">'+ICON.star+'</span><div class="main"><div class="t">'+esc(k.name)+" "+st.length+'개</div><div class="s">'+(r?"최근: "+esc(r.reason):"")+"</div></div></div>"}).join("")||'<div class="empty">아직 없어요.</div>')+"</div></div>";
+}
+
+/* ---------- 날씨 (Open-Meteo, 키 필요 없음) ---------- */
+let wxCache=null;
+function wxIcon(c){return c<=1?"맑음":c<=3?"구름":c<=48?"안개":c<=67?"비":c<=77?"눈":c<=82?"소나기":c<=86?"눈":"뇌우"}
+function loadWeather(){
+  if(wxCache&&Date.now()-wxCache.at<18e5&&wxCache.city===L.city.name)return Promise.resolve(wxCache);
+  const u="https://api.open-meteo.com/v1/forecast?latitude="+L.city.lat+"&longitude="+L.city.lon+"&daily=weathercode,temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Asia%2FSeoul";
+  return fetch(u).then(r=>r.ok?r.json():null).then(j=>{if(!j||!j.daily)return null;
+    wxCache={at:Date.now(),city:L.city.name,now:j.current_weather?Math.round(j.current_weather.temperature):null,nowTxt:j.current_weather?wxIcon(j.current_weather.weathercode):"",
+      days:j.daily.time.map((d,i)=>({date:d,icon:wxIcon(j.daily.weathercode[i]),max:Math.round(j.daily.temperature_2m_max[i]),min:Math.round(j.daily.temperature_2m_min[i])}))};return wxCache}).catch(()=>null);
+}
+function fillWxLine(){const el=$("#wxLine");if(!el)return;loadWeather().then(w=>{const e=$("#wxLine");if(!e)return;e.textContent=w?L.city.name+" "+w.nowTxt+" "+w.now+"° · 최고 "+w.days[0].max+"° 최저 "+w.days[0].min+"°":"날씨는 인터넷이 연결된 앱에서 보여요"})}
+
+/* ---------- AI ---------- */
+let aiState="none",sampleFn=null;
+async function initAI(){
+  try{if(window.claude&&window.claude.use){const s=await window.claude.use("sample");if(s){sampleFn=s;aiState="sample"}}}catch(e){}
+  if(aiState!=="sample"&&L.aiUrl)aiState="server";
+}
+async function askAI(prompt,images){
+  if(aiState==="sample"&&sampleFn){
+    return sampleFn.json(prompt,images?{images}:{});
+  }
+  if(L.aiUrl){
+    let img=null;if(images&&images[0])img=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(images[0])});
+    const r=await fetch(L.aiUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,image:img})});
+    if(!r.ok)throw {code:"server"};const j=await r.json();return j.result!==undefined?j.result:j;
+  }
+  throw {code:"no_ai"};
+}
+function aiErr(e){const c=e&&e.code;return c==="no_ai"?"AI가 아직 연결되지 않았어요. 설정 → AI 연결에서 서버 주소를 넣으면 켜져요.":c==="not_granted"?"Claude 사용을 허락하지 않아 AI를 쓸 수 없어요.":c==="rate_limited"?"요청이 많아요. 잠시 뒤 다시 눌러 주세요.":c==="images_unavailable"?"이 화면에서는 사진을 보낼 수 없어요.":c==="invalid_json"?"답을 읽지 못했어요. 한 번 더 눌러 주세요.":"AI 응답을 받지 못했어요. 잠시 뒤 다시 시도해 주세요."}
+let aiBusy=false;
+async function aiProduct(id){
+  if(!L.pro)return toast("가족 비서 팩에서 쓸 수 있어요");
+  const f=find("fridge",id),out=$("#aiOut");if(!f||!out||aiBusy)return;aiBusy=true;
+  out.innerHTML='<div class="ai-out">생각하는 중이에요…</div>';
+  const b=f.buy||{};
+  try{
+    const r=await askAI('한국 가정의 장보기 도우미로서, 다 써서 다시 살 품목에 대해 더 나은 대안 제품 3개를 추천해 줘. 품목: "'+f.name+'". 분류: '+(f.cat||"")+'. 가족 메모: "'+(b.memo||"없음")+'". 지난 구매처: "'+(b.store||"모름")+'". 한국에서 쉽게 살 수 있는 일반적인 제품 유형이나 대표 브랜드로 답하고, 정확한 가격은 지어내지 마. 오직 JSON 배열로만 답해: [{"name":"제품명(브랜드+용량)","why":"고른 이유 한 문장","search":"쇼핑몰 검색어"}]');
+    const arr=Array.isArray(r)?r:(r&&r.items)||[];
+    out.innerHTML='<div class="ai-out"><b>AI 추천</b>'+arr.slice(0,3).map(x=>'<div class="row"><div class="main"><div class="t">'+esc(x.name)+'</div><div class="s">'+esc(x.why)+'</div><div class="segs" style="margin-top:6px">'+L.stores.slice(0,3).map(s=>'<a class="seg" target="_blank" rel="noopener" style="text-decoration:none;color:inherit" href="'+esc(storeUrl(s,x.search||x.name))+'">'+esc(s.name)+"</a>").join("")+'<button class="seg" data-act="useProduct" data-id="'+f.id+'" data-name="'+esc(x.name)+'">메모에 저장</button></div></div></div>').join("")+'<p style="font-size:12px;color:var(--muted);margin:6px 0 0">가격과 재고는 쇼핑몰에서 확인하세요.</p></div>';
+  }catch(e){out.innerHTML='<div class="ai-out">'+esc(aiErr(e))+"</div>"}
+  aiBusy=false;
+}
+async function aiMeal(){
+  const out=$("#mealOut");if(!out||aiBusy)return;aiBusy=true;out.innerHTML='<div class="ai-out">냉장고를 살펴보는 중이에요…</div>';
+  const have=live("fridge").filter(f=>f.status!=="다씀").map(f=>f.name+(f.exp&&diffDays(f.exp,today())<=3?"(유통기한 임박)":""));
+  const recent=live("meals").filter(m=>diffDays(today(),m.date)<=7).map(m=>m.menu);
+  try{
+    const r=await askAI('한국 가정의 저녁 메뉴를 4개 추천해 줘. 냉장고 재료: '+(have.join(", ")||"정보 없음")+'. 유통기한 임박 재료를 먼저 쓰고, 최근 먹은 메뉴('+(recent.join(", ")||"없음")+')는 피해. 아이도 먹기 쉬운 메뉴 위주로. 오직 JSON 배열로만 답해: [{"menu":"메뉴 이름","uses":"쓰는 냉장고 재료","need":"더 사야 할 재료(없으면 빈 문자열)"}]');
+    const arr=Array.isArray(r)?r:(r&&r.items)||[];const ws=addDays(parse(weekStart()),mealWeek*7);
+    out.innerHTML='<div class="ai-out">'+arr.slice(0,4).map((x,i)=>'<div class="row"><div class="main"><div class="t">'+esc(x.menu)+'</div><div class="s">재료: '+esc(x.uses)+(x.need?" · 더 살 것: "+esc(x.need):"")+'</div></div><select id="mday'+i+'" style="border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:5px">'+Array.from({length:7},(_,k)=>{const d=addDays(ws,k);return '<option value="'+ymd(d)+'"'+(ymd(d)===today()?" selected":"")+">"+DOW[d.getDay()]+"</option>"}).join("")+'</select><button class="btn sm" data-act="useMeal" data-i="'+i+'" data-menu="'+esc(x.menu)+'" data-need="'+esc(x.need||"")+'">넣기</button></div>').join("")+"</div>";
+  }catch(e){out.innerHTML='<div class="ai-out">'+esc(aiErr(e))+"</div>"}
+  aiBusy=false;
+}
+let photoFound=[];
+function photoEvents(){
+  if(!L.pro)return toast("가족 비서 팩에서 쓸 수 있어요");
+  sheet('<h3>사진으로 일정 넣기</h3><p style="margin:-4px 0 12px;font-size:13.5px;color:var(--muted)">가정통신문·학원 시간표·알림장 사진을 골라 주세요. AI가 찾은 일정을 보여 드리면, 넣을 것만 고르면 돼요.</p><div class="fld"><label for="photoIn">사진</label><input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp"></div><div id="photoOut"></div><div class="acts"><span class="sp"></span><button class="btn ghost" data-act="close">닫기</button></div>');
+  $("#photoIn").onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;const out=$("#photoOut");out.innerHTML='<div class="ai-out">사진 속 날짜와 일정을 찾는 중이에요… (최대 1분)</div>';
+    try{
+      const yr=new Date().getFullYear();
+      const r=await askAI("이 사진은 한국 학교의 가정통신문, 학원 시간표 또는 알림장이야. 가족 달력에 넣을 일정을 모두 찾아 줘. 연도가 없으면 "+yr+"년으로 보고, 이미 지난 날짜면 다음 해로 보지 마. 오직 JSON 배열로만 답해: [{\"date\":\"YYYY-MM-DD\",\"time\":\"HH:MM 또는 빈 문자열\",\"title\":\"짧은 일정 이름\",\"note\":\"준비물 등 메모 또는 빈 문자열\"}]. 일정이 없으면 []",[file]);
+      photoFound=(Array.isArray(r)?r:[]).filter(x=>x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&x.title);
+      if(!photoFound.length){out.innerHTML='<div class="ai-out">사진에서 날짜가 있는 일정을 찾지 못했어요. 글자가 잘 보이게 다시 찍어 주세요.</div>';return}
+      out.innerHTML='<div class="ai-out"><b>찾은 일정 '+photoFound.length+'개</b> · 넣을 것만 체크하세요'+photoFound.map((x,i)=>'<label class="row" style="cursor:pointer"><input type="checkbox" id="pf'+i+'" checked style="width:20px;height:20px"><div class="main"><div class="t">'+esc(x.title)+'</div><div class="s">'+esc(x.date)+(x.time?" "+esc(x.time):"")+(x.note?" · "+esc(x.note):"")+"</div></div></label>").join("")+
+        '<div class="fld" style="margin-top:8px"><label for="pfWho">누구 일정</label><select id="pfWho">'+memberOpts("all",true)+'</select></div><button class="btn" data-act="photoAdd">달력에 넣기</button></div>';
+    }catch(err){out.innerHTML='<div class="ai-out">'+esc(aiErr(err))+"</div>"}
+  };
+}
+
+/* ---------- 가족 공유 (Firestore REST) ---------- */
+let syncT=null,syncing=false,lastSync=0;
+function syncOn(){const s=L.sync;return !!(s.projectId&&s.apiKey&&s.code)}
+function docUrl(){const s=L.sync;return "https://firestore.googleapis.com/v1/projects/"+encodeURIComponent(s.projectId)+"/databases/(default)/documents/families/"+encodeURIComponent(s.code)+"?key="+encodeURIComponent(s.apiKey)}
+function merge(remote){
+  let changed=false;
+  COLS.forEach(c=>{const rl=remote[c]||[];rl.forEach(r=>{const i=S[c].findIndex(x=>x.id===r.id);if(i<0){S[c].push(r);changed=true}else if((r.upd||0)>(S[c][i].upd||0)){S[c][i]=r;changed=true}})});
+  if(remote.example===false&&S.example){S.example=false;changed=true}
+  return changed;
+}
+function setPill(t){const p=$("#syncPill");if(p)p.textContent=t}
+async function doSync(){
+  if(!syncOn()||syncing)return;syncing=true;setPill("맞추는 중");
+  try{
+    const g=await fetch(docUrl());let changed=false;
+    if(g.ok){const j=await g.json();const raw=j.fields&&j.fields.data&&j.fields.data.stringValue;if(raw){changed=merge(JSON.parse(raw))}}
+    else if(g.status!==404)throw new Error("HTTP "+g.status);
+    if(dirty||changed||g.status===404){
+      const body={fields:{data:{stringValue:JSON.stringify(Object.assign({example:!!S.example},Object.fromEntries(COLS.map(c=>[c,S[c]]))))},updated:{integerValue:String(Date.now())}}};
+      const p=await fetch(docUrl(),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      if(!p.ok)throw new Error("HTTP "+p.status);dirty=false;
+    }
+    sset(KEY,S);lastSync=Date.now();setPill("가족과 공유 중");
+    if(changed&&!$("#layer").innerHTML)render();
+    const m=$("#syncMsg");if(m)m.textContent="마지막으로 맞춘 시각 "+new Date().toLocaleTimeString("ko-KR");
+  }catch(e){setPill("공유 연결 안 됨");const m=$("#syncMsg");if(m)m.textContent="연결하지 못했어요: "+(e.message||"인터넷 또는 Firebase 설정을 확인하세요")+". Firestore 데이터베이스를 만들고 규칙에서 families 문서 읽기·쓰기를 허용했는지 확인하세요."}
+  syncing=false;
+}
+function queueSync(){if(!syncOn())return;clearTimeout(syncT);syncT=setTimeout(doSync,1500)}
+setInterval(()=>{if(syncOn()&&document.visibilityState!=="hidden")doSync()},15000);
+
+/* ---------- 라우터 ---------- */
+const VIEWS={today:vToday,calendar:vCalendar,todo:vTodo,shop:vShop,fridge:vFridge,more:vMore,money:vMoney,meal:vMeal,kids:vKids,setup:vSetup,wall:vWall,grand:vGrand};
+function cur(){const h=(location.hash||"").slice(1);return VIEWS[h]?h:"today"}
+function render(){
+  const v=cur(),t=new Date();
+  $("#famName").textContent=L.famName||"우리가족";
+  $("#topDate").textContent=(t.getMonth()+1)+"월 "+t.getDate()+"일 "+DOW[t.getDay()]+"요일";
+  if(!syncOn())setPill("이 기기에 저장");
+  $("#tabs").innerHTML=navHtml(v);$("#rail").innerHTML=railHtml(v);
+  if(v==="wall"&&!L.pro){$("#view").innerHTML=proLock("거실 대시보드");return}
+  $("#view").innerHTML=VIEWS[v]();
+  if(v==="today")fillWxLine();
+  if(v==="wall")startWall();else{clearInterval(clockT);if(wakeLock){try{wakeLock.release()}catch(e){}wakeLock=null}}
+}
+window.addEventListener("hashchange",()=>{closeSheet();render();window.scrollTo(0,0)});
+
+/* ---------- 동작 ---------- */
+const A={
+  close:closeSheet,
+  scrim:(d,el,ev)=>{if(ev.target===el)closeSheet()},
+  formDel:()=>{const b=$("#delBtn");if(b.dataset.sure){formCtx.onDelete()}else{b.dataset.sure="1";b.textContent="한 번 더 누르면 삭제";b.classList.add("warn")}},
+  wall:()=>{location.hash="wall"},wallClose:()=>{location.hash="today"},
+  proOn:()=>{L.pro=true;saveLocal();render();toast("가족 비서 팩 미리 써보기를 켰어요")},
+  clearExample:()=>{COLS.forEach(c=>{if(c==="members")return;S[c].forEach(x=>{x.del=true;x.upd=Date.now()})});S.example=false;save();location.hash="setup";render();toast("예시를 지웠어요. 가족 구성원부터 바꿔 주세요")},
+  quickAdd:()=>{sheet('<h3>빠른 추가</h3><div class="optlist">'+[["addEvent","일정","달력에 일정·기념일·납부일"],["addTodo","할 일","담당자와 함께"],["addShopQ","장보기","살 것 한 줄"],["addFridge","냉장고 품목","유통기한과 함께"]].map(o=>'<button class="opt" data-act="'+o[0]+'"><span class="main"><b>'+o[1]+'</b><div class="s">'+o[2]+"</div></span></button>").join("")+'</div><div class="acts"><span class="sp"></span><button class="btn ghost" data-act="close">닫기</button></div>')},
+  addShopQ:()=>form("장보기 추가",[{k:"name",label:"살 것",ph:"예: 두부"},{k:"qty",label:"수량",ph:"예: 2모"}],v=>{if(!v.name)return;put("shop",{name:v.name,qty:v.qty,done:false});closeSheet();render()}),
+  addEvent:d=>eventForm(null,d.ds),editEvent:d=>eventForm(find("events",d.id)),
+  selDay:d=>{calSel=d.ds;render()},calMove:d=>{calM+=Number(d.n);if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}render()},
+  calToday:()=>{calY=null;render()},
+  photoEvents:photoEvents,
+  photoAdd:()=>{const who=$("#pfWho").value;let n=0;photoFound.forEach((x,i)=>{if($("#pf"+i)&&$("#pf"+i).checked){put("events",{date:x.date,time:x.time||"",title:x.title,memo:x.note||"",type:"일정",repeat:"none",who});n++}});closeSheet();toast(n+"개 일정을 넣었어요");render()},
+  addTodo:()=>todoForm(),editTodo:d=>todoForm(find("todos",d.id)),
+  toggleTodo:d=>{const t=find("todos",d.id);if(!t)return;t.done=!t.done;t.doneBy=t.done?(L.me||t.who):"";t.doneAt=t.done?Date.now():0;put("todos",t);render()},
+  todoFilter:d=>{todoFilter=d.id;render()},
+  toggleShop:d=>{const s=find("shop",d.id);if(!s)return;s.done=!s.done;put("shop",s);
+    if(s.done&&s.from){const f=find("fridge",s.from);if(f&&f.status==="다씀"){f.status="있음";put("fridge",f);toast(f.name+"을(를) 냉장고 '있음'으로 바꿨어요")}}render()},
+  editShop:d=>{const s=find("shop",d.id);form("장보기 고치기",[{k:"name",label:"살 것",value:s.name},{k:"qty",label:"수량",value:s.qty}],v=>{Object.assign(s,v);put("shop",s);closeSheet();render()},()=>{del("shop",s.id);closeSheet();render()})},
+  clearShop:()=>{live("shop").filter(s=>s.done).forEach(s=>{s.del=true;s.upd=Date.now()});save();render()},
+  addFridge:()=>fridgeForm(),editFridge:d=>fridgeForm(find("fridge",d.id)),
+  fstat:d=>{closeSheet();setFridgeStatus(d.id,d.s)},
+  order:d=>orderSheet(d.id),aiProduct:d=>aiProduct(d.id),
+  useProduct:d=>{const f=find("fridge",d.id);f.buy=f.buy||{};f.buy.memo=d.name;put("fridge",f);toast("구매 메모에 저장했어요");orderSheet(f.id)},
+  addLedger:()=>ledgerForm(),editLedger:d=>ledgerForm(find("ledger",d.id)),
+  monMove:d=>{mM+=Number(d.n);if(mM<0){mM=11;mY--}if(mM>11){mM=0;mY++}render()},
+  mealMove:d=>{mealWeek=Number(d.n)===0?0:mealWeek+Number(d.n);render()},
+  editMeal:d=>{const m=live("meals").find(x=>x.date===d.ds&&x.slot===d.slot);form(d.ds.slice(5).replace("-","/")+" "+d.slot,[{k:"menu",label:"메뉴",value:m?m.menu:"",ph:"예: 된장찌개, 계란말이"}],v=>{if(m){if(!v.menu){del("meals",m.id)}else{m.menu=v.menu;put("meals",m)}}else if(v.menu)put("meals",{date:d.ds,slot:d.slot,menu:v.menu});closeSheet();render()},m?()=>{del("meals",m.id);closeSheet();render()}:null)},
+  aiMeal:aiMeal,
+  useMeal:d=>{const ds=$("#mday"+d.i).value;const m=live("meals").find(x=>x.date===ds&&x.slot==="저녁");if(m){m.menu=d.menu;put("meals",m)}else put("meals",{date:ds,slot:"저녁",menu:d.menu});
+    if(d.need){d.need.split(/[,·]/).map(s=>s.trim()).filter(Boolean).forEach(n=>{if(!live("shop").some(s=>!s.done&&s.name===n))put("shop",{name:n,qty:"",done:false})});toast("메뉴를 넣고 더 살 재료를 장보기에 담았어요")}else toast("메뉴를 넣었어요");
+    const out=$("#mealOut"),keep=out?out.innerHTML:"";render();const o2=$("#mealOut");if(o2)o2.innerHTML=keep},
+  addKid:()=>kidForm(),editKid:d=>kidForm(find("kids",d.id)),
+  addGrowth:d=>form("키·몸무게 기록",[{k:"date",label:"날짜",type:"date",value:today()},{k:"height",label:"키 (cm)",type:"number",ph:"예: 144.1"},{k:"weight",label:"몸무게 (kg)",type:"number",ph:"예: 36"}],v=>{if(!v.height)return toast("키를 적어 주세요");put("growth",Object.assign({kid:d.id},v));closeSheet();render()}),
+  addSticker:d=>form("칭찬 스티커 붙이기",[{k:"reason",label:"무엇을 잘했나요",ph:"예: 동생 도와줌"},{k:"date",label:"날짜",type:"date",value:today()}],v=>{if(!v.reason)return toast("칭찬할 일을 적어 주세요");put("stickers",Object.assign({kid:d.id},v));closeSheet();
+    const k=find("kids",d.id),n=live("stickers").filter(s=>s.kid===d.id).length;if(n%(Number(k.goal)||10)===0)toast(k.name+" 스티커 완성! 보상: "+(k.reward||""));else toast("스티커를 붙였어요");render()}),
+  addMember:()=>memberForm(),editMember:d=>memberForm(find("members",d.id)),
+  saveSync:()=>{L.sync={projectId:$("#syP").value.trim(),apiKey:$("#syK").value.trim(),code:$("#syC").value.trim()};saveLocal();if(syncOn()){dirty=true;doSync().then(()=>render())}else{render();toast("세 칸을 모두 채워 주세요")}},
+  genCode:()=>{const w=["바다","하늘","소나무","등대","파도","햇살","단풍","별빛"];$("#syC").value=w[Math.random()*w.length|0]+"-"+Math.random().toString(36).slice(2,8)+"-"+Math.random().toString(36).slice(2,8)},
+  syncNow:()=>{dirty=true;doSync()},
+  saveAi:()=>{L.aiUrl=$("#aiIn").value.trim();saveLocal();if(aiState!=="sample")aiState=L.aiUrl?"server":"none";toast("저장했어요");render()},
+  city:d=>{L.city={name:d.n,lat:Number(d.lat),lon:Number(d.lon)};wxCache=null;saveLocal();render()},
+  addStore:()=>form("쇼핑몰 추가",[{k:"name",label:"이름",ph:"예: 이마트몰"},{k:"url",label:"검색 주소",ph:"https://...{q}",help:"검색 결과 주소에서 검색어 자리를 {q}로 바꿔 넣으세요."}],v=>{if(!v.name||!v.url.includes("{q}"))return toast("이름과 {q}가 들어간 주소를 넣어 주세요");L.stores.push(v);saveLocal();closeSheet();render()}),
+  delStore:d=>{L.stores.splice(Number(d.i),1);saveLocal();render()},
+  backup:()=>{const txt=JSON.stringify(Object.assign({app:"우리가족 플래너",at:new Date().toISOString()},Object.fromEntries(COLS.map(c=>[c,live(c)]))));
+    if(window.AndroidBridge&&window.AndroidBridge.share){window.AndroidBridge.share(txt);return}
+    sheet('<h3>백업</h3><p style="margin:-4px 0 10px;font-size:13.5px;color:var(--muted)">아래 글자를 모두 복사해 카톡 나에게 보내기나 메모에 보관하세요.</p><div class="fld"><textarea id="bkTxt" readonly style="min-height:160px">'+esc(txt)+'</textarea></div><div class="acts"><span class="sp"></span><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="copyBk">복사</button></div>')},
+  copyBk:()=>{const t=$("#bkTxt");navigator.clipboard&&navigator.clipboard.writeText(t.value).then(()=>toast("복사했어요"),()=>{t.select();toast("글자를 길게 눌러 복사하세요")})||(t.select())},
+  restore:()=>{sheet('<h3>되살리기</h3><div class="fld"><label for="rsTxt">백업 글자 붙여넣기</label><textarea id="rsTxt" style="min-height:160px"></textarea></div><div class="acts"><span class="sp"></span><button class="btn ghost" data-act="close">취소</button><button class="btn" data-act="doRestore">되살리기</button></div>')},
+  doRestore:()=>{try{const o=JSON.parse($("#rsTxt").value);if(!o.members)throw 0;const now=Date.now();COLS.forEach(c=>{(o[c]||[]).forEach(x=>x.upd=now)});merge(o);S.example=false;save();closeSheet();render();toast("되살렸어요")}catch(e){toast("백업 글자가 올바르지 않아요")}},
+  resetAll:d=>{const b=document.querySelector('[data-act="resetAll"]');if(!b.dataset.sure){b.dataset.sure="1";b.textContent="정말요? 한 번 더 누르세요";return}
+    const now=Date.now();COLS.forEach(c=>{if(c!=="members")S[c].forEach(x=>{x.del=true;x.upd=now})});S.example=false;save();render();toast("모두 지웠어요")}
+};
+function kidForm(k){const isNew=!k;k=k||{goal:10,reward:""};form(isNew?"아이 추가":"아이 고치기",[{k:"name",label:"이름",value:k.name},{k:"goal",label:"스티커 목표 개수",type:"number",value:k.goal},{k:"reward",label:"다 모으면 받을 보상",value:k.reward,ph:"예: 주말 영화 보기"}],
+  v=>{if(!v.name)return toast("이름을 적어 주세요");put("kids",Object.assign(k,v,{goal:Number(v.goal)||10}));closeSheet();render()},isNew?null:()=>{del("kids",k.id);closeSheet();render()})}
+const MCOL=["var(--m1)","var(--m2)","var(--m3)","var(--m4)","var(--m5)","var(--m6)"];
+function memberForm(m){const isNew=!m;m=m||{color:MCOL[live("members").length%6]};form(isNew?"구성원 추가":"구성원 고치기",[{k:"name",label:"이름 (호칭)",value:m.name,ph:"예: 엄마, 지우"},{k:"color",label:"색",type:"select",options:MCOL.map((c,i)=>[c,["파랑","분홍","노랑","보라","초록","주황"][i]]),value:m.color}],
+  v=>{if(!v.name)return toast("이름을 적어 주세요");put("members",Object.assign(m,v));if(!L.me){L.me=m.id;saveLocal()}closeSheet();render()},isNew||live("members").length<2?null:()=>{del("members",m.id);closeSheet();render()})}
+
+document.addEventListener("click",ev=>{
+  const el=ev.target.closest("[data-act]");if(!el)return;const fn=A[el.dataset.act];if(!fn)return;
+  if(el.tagName==="A"&&el.getAttribute("href"))return;
+  ev.preventDefault();fn(el.dataset,el,ev);
+});
+document.addEventListener("submit",ev=>{
+  ev.preventDefault();
+  if(ev.target.id==="theForm"&&formCtx)formCtx.onSave(readForm());
+  if(ev.target.id==="shopAdd"){const i=$("#shopName"),v=i.value.trim();if(!v)return;const m=v.match(/^(.*?)\s+(\d+\S*)$/);put("shop",{name:m?m[1]:v,qty:m?m[2]:"",done:false});render();const n=$("#shopName");if(n)n.focus()}
+});
+document.addEventListener("change",ev=>{
+  if(ev.target.id==="proChk"){L.pro=ev.target.checked;saveLocal();render()}
+  if(ev.target.id==="meSel"){L.me=ev.target.value;saveLocal();render()}
+  if(ev.target.id==="famIn"){L.famName=ev.target.value.trim()||"우리가족";saveLocal();render()}
+});
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&$("#layer").innerHTML)closeSheet()});
+
+saveLocal();sset(KEY,S);
+render();
+initAI().then(()=>{if(cur()==="setup")render()});
+if(syncOn())doSync();
+})();
+</script>
