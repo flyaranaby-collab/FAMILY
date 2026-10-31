@@ -12,7 +12,19 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
+      - name: 고정 서명 키 준비 (GitHub Secrets)
+        env:
+          KS: ${{ secrets.FAMILY_KEYSTORE }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/family.keystore"
+            echo "FAMILY_KEYSTORE_PATH=$RUNNER_TEMP/family.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::warning::FAMILY_KEYSTORE 비밀값이 없어 임시 키로 서명합니다. 이 APK는 다음 버전으로 업데이트되지 않습니다."
+          fi
       - run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+        env:
+          FAMILY_KEY_PASS: ${{ secrets.FAMILY_KEY_PASS }}
       - run: cp app/build/outputs/apk/debug/app-debug.apk family-planner.apk
       - uses: actions/upload-artifact@v4
         with: { name: family-planner-apk, path: family-planner.apk }

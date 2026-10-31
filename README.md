@@ -21,3 +21,12 @@
 
 ## AI 기능
 앱 안에 AI 키를 넣지 않습니다. 설정 → AI 연결에 가족 플래너 전용 서버 주소(예: Firebase Cloud Functions)를 넣으면 켜집니다. 서버는 `{prompt, image}`를 받아 JSON을 돌려주면 됩니다.
+
+## 업데이트(덮어쓰기 설치)
+안드로이드는 **같은 앱 이름표(kr.familyplanner) + 같은 서명 키**로 만든 APK만 기존 앱 위에 업데이트로 설치해 줍니다. 서명 키는 저장소에 올리지 않고 GitHub Secrets에 넣어 둡니다.
+
+- 저장소 Settings → Secrets and variables → Actions → New repository secret
+  - `FAMILY_KEYSTORE`: 서명 키 파일을 base64로 바꾼 값
+  - `FAMILY_KEY_PASS`: 서명 키 비밀번호
+- 두 값이 있으면 이후 모든 APK가 같은 키로 서명되고, 빌드 번호가 올라가 기존 앱 위에 그대로 업데이트됩니다(기록 유지).
+- 서명 키를 잃어버리면 다시는 업데이트할 수 없으니 따로 보관하세요.
